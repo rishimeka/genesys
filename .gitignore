@@ -21,6 +21,7 @@ out/
 # Environment
 .env
 .env.*
+!.env.example
 
 # OS
 .DS_Store
@@ -43,6 +44,7 @@ data/
 # Benchmark data files (large datasets)
 benchmarks/locomo10.json
 benchmarks/locomo_eval_results.json
+benchmarks/locomo_judged.json
 
 # Internal docs (not for OSS)
 phases/

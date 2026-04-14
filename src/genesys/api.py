@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
+import logging
 import os
 import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
 
 from pathlib import Path
@@ -29,9 +32,73 @@ from genesys.models.enums import MemoryStatus
 from genesys.providers import get_providers
 
 # ---------------------------------------------------------------------------
+# Security configuration
+# ---------------------------------------------------------------------------
+_DEV_MODE = os.getenv("GENESYS_DEV_MODE", "").lower() in ("1", "true", "yes")
+_ADMIN_API_KEY = os.getenv("GENESYS_ADMIN_API_KEY", "")
+_BYPASS_RATE_LIMITS = os.getenv("GENESYS_BYPASS_RATE_LIMITS", "").lower() in ("1", "true", "yes")
+
+# Rate limiting: token bucket per user
+_RATE_LIMIT_GENERAL = int(os.getenv("GENESYS_RATE_LIMIT_GENERAL", "60"))  # req/min
+_RATE_LIMIT_ADMIN = int(os.getenv("GENESYS_RATE_LIMIT_ADMIN", "5"))  # req/min
+_rate_buckets: dict[str, list[float]] = defaultdict(list)
+
+logger = logging.getLogger("genesys.api")
+
+_rate_buckets_last_gc: float = 0.0
+
+def _check_rate_limit(user_id: str, limit: int) -> bool:
+    """Return True if request is allowed, False if rate-limited."""
+    if _BYPASS_RATE_LIMITS:
+        return True
+    now = time.time()
+    window_start = now - 60.0
+    bucket = _rate_buckets[user_id]
+    # Prune old entries
+    _rate_buckets[user_id] = [t for t in bucket if t > window_start]
+    if len(_rate_buckets[user_id]) >= limit:
+        return False
+    _rate_buckets[user_id].append(now)
+    # Periodic GC: remove empty buckets every 5 minutes
+    global _rate_buckets_last_gc
+    if now - _rate_buckets_last_gc > 300:
+        _rate_buckets_last_gc = now
+        empty_keys = [k for k, v in _rate_buckets.items() if not v or v[-1] < window_start]
+        for k in empty_keys:
+            del _rate_buckets[k]
+    return True
+
+
+def _verify_admin(request: Request) -> bool:
+    """Check if request carries valid admin credentials."""
+    if _DEV_MODE:
+        return True
+    if not _ADMIN_API_KEY:
+        return False
+    provided = request.headers.get("x-admin-key", "")
+    return hmac.compare_digest(provided, _ADMIN_API_KEY)
+
+
+# ---------------------------------------------------------------------------
 # MCP Server (FastMCP) with OAuth
 # ---------------------------------------------------------------------------
 _public_url = os.getenv("GENESYS_PUBLIC_URL", "http://localhost:8000")
+
+# Startup safety checks
+from urllib.parse import urlparse as _urlparse
+_parsed_public = _urlparse(_public_url)
+if _DEV_MODE and _parsed_public.hostname not in ("localhost", "127.0.0.1", "::1"):
+    raise RuntimeError(
+        "GENESYS_DEV_MODE is enabled but GENESYS_PUBLIC_URL points to a non-localhost domain "
+        f"({_public_url}). This would disable authentication and admin controls in production. "
+        "Remove GENESYS_DEV_MODE or set GENESYS_PUBLIC_URL to localhost."
+    )
+if _DEV_MODE:
+    logger.warning("GENESYS_DEV_MODE is ON — x-user-id header bypass and admin auto-approve are enabled")
+if _BYPASS_RATE_LIMITS:
+    logger.warning("GENESYS_BYPASS_RATE_LIMITS is ON — all rate limiting is disabled")
+if not _ADMIN_API_KEY and not _DEV_MODE:
+    logger.warning("GENESYS_ADMIN_API_KEY is not set — admin endpoints will reject all requests")
 
 mcp = FastMCP(
     "Genesys",
@@ -285,13 +352,13 @@ _fastapi = FastAPI(title="Genesys API")
 _fastapi.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        # Additional origins via env var (comma-separated)
-        *(os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []),
+        # Localhost origins only in dev mode
+        *(["http://localhost:3000", "http://127.0.0.1:3000"] if _DEV_MODE else []),
+        # Production origins via env var (comma-separated, validated)
+        *[o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()],
     ],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-User-Id"],
 )
 
 
@@ -312,8 +379,8 @@ class UserContextMiddleware(BaseHTTPMiddleware):
             resolved = await _resolve_user_from_token(raw_token)
             if resolved:
                 uid = resolved
-        elif request.headers.get("x-user-id"):
-            # Dev/benchmark mode: allow explicit user_id via header
+        elif _DEV_MODE and request.headers.get("x-user-id"):
+            # Dev/benchmark mode only: allow explicit user_id via header
             uid = request.headers["x-user-id"]
 
         token = current_user_id.set(uid)
@@ -338,7 +405,50 @@ async def _resolve_user_from_token(token: str) -> str | None:
         return await _lookup_token_in_db(token)
 
 
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Per-user rate limiting with configurable window."""
+    async def dispatch(self, request, call_next):
+        if _BYPASS_RATE_LIMITS:
+            return await call_next(request)
+
+        uid = current_user_id.get("__anonymous__")
+        path = request.url.path
+
+        # Admin endpoints get tighter limits
+        if "/admin/" in path or path == "/backfill-edges":
+            limit = _RATE_LIMIT_ADMIN
+        else:
+            limit = _RATE_LIMIT_GENERAL
+
+        # Only rate-limit mutating requests (POST/PUT/DELETE)
+        if request.method in ("POST", "PUT", "DELETE"):
+            if not _check_rate_limit(f"{uid}:{path}", limit):
+                return JSONResponse(
+                    {"error": "Rate limit exceeded. Try again later."},
+                    status_code=429,
+                    headers={"Retry-After": "60"},
+                )
+
+        return await call_next(request)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add standard security headers to all responses."""
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        # HSTS only when behind HTTPS (check x-forwarded-proto for reverse proxies)
+        if request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+
 _fastapi.add_middleware(UserContextMiddleware)
+_fastapi.add_middleware(RateLimitMiddleware)
+_fastapi.add_middleware(SecurityHeadersMiddleware)
 
 
 # ---------------------------------------------------------------------------
@@ -457,10 +567,23 @@ def _edge_dict(edge) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Auth guard for REST endpoints
+# ---------------------------------------------------------------------------
+def _require_auth() -> str:
+    """Return user_id or raise 401 if anonymous and not in dev mode."""
+    uid = current_user_id.get("__anonymous__")
+    if uid == "__anonymous__" and not _DEV_MODE:
+        return ""
+    return uid
+
+
+# ---------------------------------------------------------------------------
 # REST Endpoints (for web UI)
 # ---------------------------------------------------------------------------
 @_fastapi.get("/memories")
 async def list_memories(limit: int = Query(100, le=500), offset: int = Query(0, ge=0)):
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
     p = get_providers()
     nodes = await _get_all_nodes(p.graph, limit=limit)
     nodes.sort(key=lambda n: n.created_at, reverse=True)
@@ -470,6 +593,8 @@ async def list_memories(limit: int = Query(100, le=500), offset: int = Query(0, 
 
 @_fastapi.post("/memories")
 async def store_memory_rest(body: dict):
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
     p = get_providers()
     result = await p.tools.memory_store(
         content=body["content"],
@@ -482,6 +607,8 @@ async def store_memory_rest(body: dict):
 
 @_fastapi.post("/recall")
 async def recall_memories_rest(body: dict):
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
     p = get_providers()
     result = await p.tools.memory_recall(
         query=body["query"],
@@ -535,6 +662,8 @@ async def get_current_user():
 
 @_fastapi.get("/memories/{memory_id}")
 async def get_memory(memory_id: str):
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
     p = get_providers()
     node = await p.graph.get_node(memory_id)
     if not node:
@@ -545,6 +674,8 @@ async def get_memory(memory_id: str):
 
 @_fastapi.get("/graph")
 async def get_graph():
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
     p = get_providers()
     nodes = await _get_all_nodes(p.graph)
     node_ids = [str(n.id) for n in nodes]
@@ -557,6 +688,8 @@ async def get_graph():
 
 @_fastapi.get("/core")
 async def get_core_memories():
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
     p = get_providers()
     nodes = await p.graph.get_nodes_by_status(MemoryStatus.CORE, limit=500)
     nodes.sort(key=lambda n: n.causal_weight, reverse=True)
@@ -565,6 +698,8 @@ async def get_core_memories():
 
 @_fastapi.get("/stats")
 async def get_stats():
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
     p = get_providers()
     raw = await p.tools.memory_stats()
 
@@ -587,8 +722,10 @@ async def get_stats():
 
 
 @_fastapi.post("/admin/clear-user")
-async def clear_user():
-    """Delete all memories and edges for the current user. For benchmarks/testing."""
+async def clear_user(request: Request):
+    """Delete all memories and edges for the current user. Requires admin key."""
+    if not _verify_admin(request):
+        return JSONResponse({"error": "Unauthorized — admin key required"}, status_code=403)
     p = get_providers()
     uid = current_user_id.get("__anonymous__")
     await p.graph.destroy(uid)
@@ -596,8 +733,10 @@ async def clear_user():
 
 
 @_fastapi.post("/admin/recalculate-decay")
-async def recalculate_decay():
-    """Trigger immediate decay score recalculation for the current user."""
+async def recalculate_decay(request: Request):
+    """Trigger immediate decay score recalculation for the current user. Requires admin key."""
+    if not _verify_admin(request):
+        return JSONResponse({"error": "Unauthorized — admin key required"}, status_code=403)
     p = get_providers()
     updated = await _recalculate_decay_for_user(p.graph, p.embeddings)
     stats = await p.graph.get_stats()
@@ -606,6 +745,8 @@ async def recalculate_decay():
 
 @_fastapi.get("/timeline")
 async def get_timeline(limit: int = Query(100, le=500)):
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
     p = get_providers()
     nodes = await _get_all_nodes(p.graph, limit=limit)
     nodes.sort(key=lambda n: n.created_at, reverse=True)
@@ -633,8 +774,10 @@ async def get_timeline(limit: int = Query(100, le=500)):
 
 
 @_fastapi.post("/backfill-edges")
-async def backfill_edges():
-    """One-time backfill: create RELATED_TO edges between existing memories via vector similarity."""
+async def backfill_edges(request: Request):
+    """One-time backfill: create RELATED_TO edges between existing memories via vector similarity. Requires admin key."""
+    if not _verify_admin(request):
+        return JSONResponse({"error": "Unauthorized — admin key required"}, status_code=403)
     from genesys.models.edge import MemoryEdge
     from genesys.models.enums import EdgeType
 
@@ -666,9 +809,17 @@ async def backfill_edges():
 # ---------------------------------------------------------------------------
 # SSE (for UI real-time updates)
 # ---------------------------------------------------------------------------
+_MAX_SSE_PER_USER = 5
+
 @_fastapi.get("/events")
 async def sse_events():
     uid = current_user_id.get("__anonymous__")
+    if uid == "__anonymous__" and not _DEV_MODE:
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
+    # Cap SSE connections per user
+    user_subs = sum(1 for sub_uid, _ in _subscribers if sub_uid == uid)
+    if user_subs >= _MAX_SSE_PER_USER:
+        return JSONResponse({"error": "Too many SSE connections"}, status_code=429)
     q: asyncio.Queue = asyncio.Queue(maxsize=256)
     entry = (uid, q)
     _subscribers.append(entry)

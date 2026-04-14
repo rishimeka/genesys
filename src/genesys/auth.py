@@ -91,12 +91,16 @@ async def verify_clerk_jwt(token: str) -> dict | None:
         if kid not in public_keys:
             return None
 
-        claims = jwt.decode(
-            token,
-            key=public_keys[kid],
-            algorithms=["RS256"],
-            options={"verify_aud": False},
-        )
+        decode_kwargs: dict = {
+            "algorithms": ["RS256"],
+            "options": {"verify_aud": False},
+        }
+        # Validate issuer if Clerk domain is configured
+        clerk_domain = os.getenv("CLERK_DOMAIN", "")
+        if clerk_domain:
+            decode_kwargs["issuer"] = f"https://{clerk_domain}"
+
+        claims = jwt.decode(token, key=public_keys[kid], **decode_kwargs)
         return claims
     except Exception:
         return None

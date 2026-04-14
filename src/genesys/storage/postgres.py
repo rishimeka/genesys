@@ -118,6 +118,14 @@ class PostgresGraphProvider:
             )
         return _row_to_node(row) if row else None
 
+    _ALLOWED_UPDATE_COLUMNS = frozenset({
+        "status", "content_summary", "content_full", "embedding", "category",
+        "entity_refs", "decay_score", "causal_weight", "reactivation_count",
+        "reactivation_pattern", "pinned", "promotion_reason", "source_agent",
+        "source_session", "last_accessed_at", "last_reactivated_at", "metadata",
+        "reactivation_timestamps", "stability",
+    })
+
     async def update_node(self, node_id: str, updates: dict) -> None:
         uid = _uid()
         if not updates:
@@ -129,6 +137,8 @@ class PostgresGraphProvider:
         idx = 1
 
         for key, val in updates.items():
+            if key not in self._ALLOWED_UPDATE_COLUMNS:
+                raise ValueError(f"Invalid column for update: {key}")
             if key == "embedding":
                 if val is not None:
                     set_parts.append(f"embedding = ${idx}::vector")
@@ -363,6 +373,7 @@ class PostgresGraphProvider:
         uid = _uid()
         pool = await get_pool()
         emb_lit = _embedding_literal(embedding)
+        k = int(k)  # Enforce integer to prevent injection
 
         conditions = ["user_id = $1", "embedding IS NOT NULL"]
         args: list = [uid]
@@ -374,14 +385,21 @@ class PostgresGraphProvider:
             args.extend(s.value for s in status_filter)
             idx += len(status_filter)
 
+        # Parameterize embedding and limit
+        args.append(emb_lit)
+        emb_param = f"${idx}"
+        idx += 1
+        args.append(k)
+        limit_param = f"${idx}"
+
         where = " AND ".join(conditions)
         query = f"""
             SELECT *, embedding::text as embedding,
-                   1 - (embedding <=> '{emb_lit}'::vector) AS similarity
+                   1 - (embedding <=> {emb_param}::vector) AS similarity
             FROM memory_nodes
             WHERE {where}
-            ORDER BY embedding <=> '{emb_lit}'::vector
-            LIMIT {k}
+            ORDER BY embedding <=> {emb_param}::vector
+            LIMIT {limit_param}
         """
         async with pool.acquire() as conn:
             rows = await conn.fetch(query, *args)
@@ -391,6 +409,7 @@ class PostgresGraphProvider:
     async def keyword_search(self, query: str, entity_refs: list[str] | None = None, k: int = 10) -> list[MemoryNode]:
         uid = _uid()
         pool = await get_pool()
+        k = int(k)  # Enforce integer
         conditions = ["user_id = $1"]
         args: list = [uid]
         idx = 2
@@ -405,10 +424,13 @@ class PostgresGraphProvider:
             args.append(entity_refs)
             idx += 1
 
+        args.append(k)
+        limit_param = f"${idx}"
+
         where = " AND ".join(conditions)
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                f"SELECT *, embedding::text as embedding FROM memory_nodes WHERE {where} LIMIT {k}",
+                f"SELECT *, embedding::text as embedding FROM memory_nodes WHERE {where} LIMIT {limit_param}",
                 *args,
             )
         return [_row_to_node(r) for r in rows]

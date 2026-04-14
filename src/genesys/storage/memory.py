@@ -6,10 +6,18 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from genesys.context import current_user_id
 from genesys.engine.scoring import cosine_similarity
 from genesys.models.edge import MemoryEdge
 from genesys.models.enums import CAUSAL_EDGE_TYPES, EdgeType, MemoryStatus
 from genesys.models.node import MemoryNode
+
+
+def _uid() -> str:
+    uid = current_user_id.get(None)
+    if uid is None:
+        raise RuntimeError("No user context — current_user_id not set")
+    return uid
 
 
 class InMemoryCacheProvider:
@@ -32,16 +40,38 @@ class InMemoryCacheProvider:
 
 
 class InMemoryGraphProvider:
-    """GraphStorageProvider backed by plain dicts. No FalkorDB needed.
+    """GraphStorageProvider backed by plain dicts with per-user isolation.
 
     If ``persist_path`` is set, state is saved to / loaded from that JSON file
     so data survives across process restarts (e.g. separate ``claude -p`` calls).
     """
 
     def __init__(self, persist_path: str | None = None):
-        self.nodes: dict[str, MemoryNode] = {}
-        self.edges: list[MemoryEdge] = []
+        # Per-user storage: {user_id: {node_id: MemoryNode}}
+        self._user_nodes: dict[str, dict[str, MemoryNode]] = {}
+        self._user_edges: dict[str, list[MemoryEdge]] = {}
         self._persist_path = Path(persist_path) if persist_path else None
+
+    @property
+    def nodes(self) -> dict[str, MemoryNode]:
+        """Return nodes for the current user."""
+        uid = _uid()
+        if uid not in self._user_nodes:
+            self._user_nodes[uid] = {}
+        return self._user_nodes[uid]
+
+    @property
+    def edges(self) -> list[MemoryEdge]:
+        """Return edges for the current user."""
+        uid = _uid()
+        if uid not in self._user_edges:
+            self._user_edges[uid] = []
+        return self._user_edges[uid]
+
+    @edges.setter
+    def edges(self, value: list[MemoryEdge]) -> None:
+        uid = _uid()
+        self._user_edges[uid] = value
 
     # -- persistence helpers --------------------------------------------------
 
@@ -49,25 +79,36 @@ class InMemoryGraphProvider:
         if not self._persist_path:
             return
         self._persist_path.parent.mkdir(parents=True, exist_ok=True)
-        data = {
-            "nodes": {nid: n.model_dump(mode="json") for nid, n in self.nodes.items()},
-            "edges": [e.model_dump(mode="json") for e in self.edges],
-        }
+        data = {}
+        for uid, nodes in self._user_nodes.items():
+            data[uid] = {
+                "nodes": {nid: n.model_dump(mode="json") for nid, n in nodes.items()},
+                "edges": [e.model_dump(mode="json") for e in self._user_edges.get(uid, [])],
+            }
         self._persist_path.write_text(_json.dumps(data))
 
     def _load(self) -> None:
         if not self._persist_path or not self._persist_path.exists():
             return
         raw = _json.loads(self._persist_path.read_text())
-        self.nodes = {nid: MemoryNode(**v) for nid, v in raw.get("nodes", {}).items()}
-        self.edges = [MemoryEdge(**e) for e in raw.get("edges", [])]
+        # Support both old format (flat) and new format (per-user)
+        if "nodes" in raw and "edges" in raw:
+            # Old flat format — migrate to default user
+            uid = _uid()
+            self._user_nodes[uid] = {nid: MemoryNode(**v) for nid, v in raw.get("nodes", {}).items()}
+            self._user_edges[uid] = [MemoryEdge(**e) for e in raw.get("edges", [])]
+        else:
+            # New per-user format
+            for uid, user_data in raw.items():
+                self._user_nodes[uid] = {nid: MemoryNode(**v) for nid, v in user_data.get("nodes", {}).items()}
+                self._user_edges[uid] = [MemoryEdge(**e) for e in user_data.get("edges", [])]
 
     async def initialize(self, user_id: str) -> None:
         self._load()
 
     async def destroy(self, user_id: str) -> None:
-        self.nodes.clear()
-        self.edges.clear()
+        self._user_nodes.pop(user_id, None)
+        self._user_edges.pop(user_id, None)
         self._save()
 
     async def create_node(self, node: MemoryNode) -> str:
