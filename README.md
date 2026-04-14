@@ -18,12 +18,10 @@ Your AI remembers everything but understands nothing. Genesys fixes that.
 
 ## Quick Start
 
-### Local mode (in-memory, no Docker)
+### Install from PyPI
 
 ```bash
-git clone https://github.com/rishimeka/genesys.git
-cd genesys
-pip install -e .  # publishes as genesys-memory on PyPI
+pip install genesys-memory
 cp .env.example .env
 # Set OPENAI_API_KEY in .env
 
@@ -33,15 +31,21 @@ uvicorn genesys.api:app --port 8000
 ### With Postgres + pgvector
 
 ```bash
-git clone https://github.com/rishimeka/genesys.git
-cd genesys
-pip install -e ".[postgres]"  # or: pip install genesys-memory[postgres]
+pip install genesys-memory[postgres]
 cp .env.example .env
 # Set OPENAI_API_KEY and DATABASE_URL in .env
 
 docker compose up -d postgres
 alembic upgrade head
 GENESYS_BACKEND=postgres uvicorn genesys.api:app --port 8000
+```
+
+### From source
+
+```bash
+git clone https://github.com/rishimeka/genesys.git
+cd genesys
+pip install -e ".[dev]"
 ```
 
 ## Connect to your AI
