@@ -23,7 +23,7 @@ Your AI remembers everything but understands nothing. Genesys fixes that.
 ```bash
 git clone https://github.com/rishimeka/genesys.git
 cd genesys
-pip install -e .  # publishes as astrix-labs.genesys on PyPI
+pip install -e .  # publishes as genesys-memory on PyPI
 cp .env.example .env
 # Set OPENAI_API_KEY in .env
 
@@ -35,7 +35,7 @@ uvicorn genesys.api:app --port 8000
 ```bash
 git clone https://github.com/rishimeka/genesys.git
 cd genesys
-pip install -e ".[postgres]"  # or: pip install astrix-labs.genesys[postgres]
+pip install -e ".[postgres]"  # or: pip install genesys-memory[postgres]
 cp .env.example .env
 # Set OPENAI_API_KEY and DATABASE_URL in .env
 
