@@ -1,0 +1,20 @@
+{
+  "auto_promote_categories": [
+    "professional",
+    "educational",
+    "family",
+    "location"
+  ],
+  "approval_required_categories": [],
+  "excluded_categories": [],
+  "notes": {
+    "professional": "Job title, employer, industry, skills, career goals",
+    "educational": "Degrees, institutions, certifications, fields of study",
+    "family": "Spouse/partner, children, parents, siblings, family structure",
+    "location": "Home city, home country, neighborhood, time zone",
+    "medical": "Not auto-promoted by default. Add to auto_promote or approval_required per user preference.",
+    "financial": "Not auto-promoted by default. Sensitive category.",
+    "preference": "General preferences (food, hobbies, communication style). Not auto-promoted — these are learned over time via reactivation patterns.",
+    "project": "Active projects and work streams. Not auto-promoted — these change frequently."
+  }
+}

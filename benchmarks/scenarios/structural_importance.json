@@ -1,0 +1,145 @@
+{
+  "name": "structural_importance",
+  "description": "Tests whether the system retains structurally important memories (high connectivity, core status) while allowing peripheral memories to decay.",
+  "conversation_history": [
+    {"turn": 1, "week": 1, "content": "I'm a software engineer at TechCorp, working on the payments team."},
+    {"turn": 2, "week": 1, "content": "Our payment system processes about 50,000 transactions per day using Stripe."},
+    {"turn": 3, "week": 1, "content": "Got a breakfast burrito from the food truck outside the office. Pretty solid."},
+    {"turn": 4, "week": 1, "content": "My commute was brutal today, 45 minutes because of an accident on the highway."},
+    {"turn": 5, "week": 2, "content": "I had pasta for lunch today at the cafeteria. It was decent."},
+    {"turn": 6, "week": 2, "content": "Had our weekly standup. Mostly status updates, nothing exciting. Jake is still working on the dashboard redesign."},
+    {"turn": 7, "week": 2, "content": "We discovered a race condition in our payment processing that causes double charges about 0.1% of the time."},
+    {"turn": 8, "week": 2, "content": "Went to the gym after work. Did legs and cardio. Feeling sore already."},
+    {"turn": 9, "week": 3, "content": "The weather has been really nice this week. Sunny and 72 degrees."},
+    {"turn": 10, "week": 3, "content": "Had a discussion in the team chat about whether to use Datadog or Grafana for monitoring. No conclusion yet."},
+    {"turn": 11, "week": 3, "content": "I proposed using distributed locks with Redis to fix the double charge race condition."},
+    {"turn": 12, "week": 3, "content": "Made some overnight oats for breakfast this week. Trying to eat healthier."},
+    {"turn": 13, "week": 4, "content": "My team approved the Redis lock approach. I'm implementing it this sprint."},
+    {"turn": 14, "week": 4, "content": "I watched a good movie last night but I can't remember the title."},
+    {"turn": 15, "week": 4, "content": "Code review for Sarah's PR on the refund endpoint took most of the afternoon. Lots of edge cases."},
+    {"turn": 16, "week": 4, "content": "It rained all day. Forgot my umbrella and got soaked walking to lunch."},
+    {"turn": 17, "week": 5, "content": "The Redis distributed lock fix is deployed to production. Double charges dropped to 0%."},
+    {"turn": 18, "week": 5, "content": "Grabbed tacos from the place down the street. Their salsa verde is amazing."},
+    {"turn": 19, "week": 5, "content": "Started watching that new sci-fi show on Netflix everyone's talking about. Two episodes in, it's okay so far."},
+    {"turn": 20, "week": 5, "content": "Sprint retro today. Team agreed we need better test coverage on the payments service. Nothing actionable came out of it though."},
+    {"turn": 21, "week": 6, "content": "My coffee maker broke this morning. Had to get coffee from the office."},
+    {"turn": 22, "week": 6, "content": "Based on the success of the payment fix, my manager asked me to lead the reliability initiative for all payment services."},
+    {"turn": 23, "week": 6, "content": "Skipped the gym today, just wasn't feeling it. Watched YouTube instead."},
+    {"turn": 24, "week": 7, "content": "Traffic was light today. Made it to the office in 20 minutes for once."},
+    {"turn": 25, "week": 7, "content": "Had a meeting about migrating our CI pipeline from Jenkins to GitHub Actions. Seems like a lot of work for not much payoff."},
+    {"turn": 26, "week": 7, "content": "I'm now designing a comprehensive reliability framework covering idempotency, circuit breakers, and retry policies for the entire payments platform."},
+    {"turn": 27, "week": 7, "content": "Tried the new sandwich place for lunch. Turkey club was mediocre. Probably won't go back."},
+    {"turn": 28, "week": 8, "content": "Monday standup ran long because everyone had weekend updates. Mike went hiking, Lisa went to a concert."},
+    {"turn": 29, "week": 8, "content": "The new reliability framework prevented a potential outage when Stripe had a 30-minute degradation."},
+    {"turn": 30, "week": 8, "content": "Ordered new headphones online. My old ones have a crackle in the left ear."},
+    {"turn": 31, "week": 8, "content": "Planning to visit my parents this weekend. Haven't seen them in a month."},
+    {"turn": 32, "week": 9, "content": "I tried a new restaurant for dinner. The sushi was okay but overpriced."},
+    {"turn": 33, "week": 9, "content": "Someone brought donuts to the office. I had two. No regrets."},
+    {"turn": 34, "week": 9, "content": "Our team is onboarding a new junior dev, Priya. She seems sharp. I'm helping her get set up with the local dev environment."},
+    {"turn": 35, "week": 9, "content": "Went for a run after work. Did 5K in about 28 minutes. Not my best time."},
+    {"turn": 36, "week": 10, "content": "TechCorp's CTO cited our payments reliability work in the all-hands as a model for other teams."},
+    {"turn": 37, "week": 10, "content": "The office AC was broken all afternoon. Everyone was complaining."},
+    {"turn": 38, "week": 10, "content": "Picked up dry cleaning on the way home. Almost forgot again."},
+    {"turn": 39, "week": 11, "content": "Had leftover pizza for lunch. Still good reheated."},
+    {"turn": 40, "week": 11, "content": "There was a debate in Slack about tabs vs spaces. Classic."},
+    {"turn": 41, "week": 11, "content": "Reviewed a PR from the platform team about logging standardization. Looks fine but not relevant to payments."},
+    {"turn": 42, "week": 12, "content": "It snowed unexpectedly this morning. Wasn't prepared for that at all."},
+    {"turn": 43, "week": 12, "content": "Finished that Netflix sci-fi show. The ending was disappointing. Wouldn't recommend it."},
+    {"turn": 44, "week": 12, "content": "Standup was quick today. Only 8 minutes. A new record for our team."},
+    {"turn": 45, "week": 13, "content": "Made a smoothie for breakfast. Banana, blueberry, and protein powder."},
+    {"turn": 46, "week": 13, "content": "Had a 1:1 with my manager. Mostly talked about career growth and upcoming promo cycles. Nothing concrete."},
+    {"turn": 47, "week": 14, "content": "The office vending machine ate my dollar again. Third time this month."},
+    {"turn": 48, "week": 14, "content": "Helped Priya debug a flaky integration test. Turned out to be a timing issue with the test database."},
+    {"turn": 49, "week": 15, "content": "Forgot to pack lunch today so I just grabbed a granola bar from the break room."},
+    {"turn": 50, "week": 15, "content": "Team happy hour at the bar across the street. Had a couple beers. Good times."},
+    {"turn": 51, "week": 16, "content": "My commute took an hour today because of road construction. They keep tearing up the same stretch."},
+    {"turn": 52, "week": 17, "content": "Sprint planning meeting went way over time. Two hours for what should have been one."},
+    {"turn": 53, "week": 18, "content": "Tried a new coffee shop near the office. Their cold brew is solid. Might become a regular."},
+    {"turn": 54, "week": 19, "content": "Went to the gym three times this week. Feeling good about getting back on track."},
+    {"turn": 55, "week": 20, "content": "It's been really windy all week. Annoying for the walk from the parking lot."},
+    {"turn": 56, "week": 21, "content": "Had a brown bag lunch session where someone from the data team presented on their new ML pipeline. Interesting but not relevant to my work."},
+    {"turn": 57, "week": 22, "content": "Started a new show on HBO. Only one episode in so too early to tell."},
+    {"turn": 58, "week": 23, "content": "Upgraded my desk setup with a monitor arm. Should have done this ages ago."},
+    {"turn": 59, "week": 24, "content": "There was a fire drill at the office. Stood outside for 15 minutes doing nothing."},
+    {"turn": 60, "week": 25, "content": "Grabbed pho for lunch from the place on 5th. Always hits the spot when it's cold out."},
+    {"turn": 61, "week": 26, "content": "Had a discussion in standup about adopting OpenTelemetry for distributed tracing. Still in the exploration phase."},
+    {"turn": 62, "week": 27, "content": "Cleaned out my desk drawers. Found three old badges and a bunch of stale snacks."},
+    {"turn": 63, "week": 28, "content": "Team offsite planning meeting. We're thinking about doing an escape room. Should be fun."},
+    {"turn": 64, "week": 29, "content": "Forgot my badge at home and had to wait for someone to let me in. Embarrassing."},
+    {"turn": 65, "week": 30, "content": "Beautiful sunset on the drive home today. Almost made the commute worth it."}
+  ],
+  "questions": [
+    {
+      "question": "What are the most important facts about the user's professional life?",
+      "ground_truth": "Software engineer at TechCorp on payments team. Fixed a double-charge race condition using Redis distributed locks. Led reliability initiative. Designed comprehensive reliability framework. Work was cited by CTO as model for other teams.",
+      "category": "structural_importance",
+      "requires": "core_memory_retention"
+    },
+    {
+      "question": "What trivial information should the system have forgotten or deprioritized?",
+      "ground_truth": "Pasta lunch at cafeteria, nice weather (72 degrees), forgot movie title, coffee maker broke, overpriced sushi restaurant. These are peripheral memories with no connections to important events.",
+      "category": "structural_importance",
+      "requires": "forgetting_verification"
+    },
+    {
+      "question": "Trace the professional impact chain from the race condition discovery.",
+      "ground_truth": "Discovered double-charge race condition (0.1%) -> proposed Redis distributed locks -> team approved -> deployed fix (0% double charges) -> asked to lead reliability initiative -> designed comprehensive framework -> framework prevented outage -> CTO cited as model.",
+      "category": "structural_importance",
+      "requires": "causal_chain_with_importance"
+    },
+    {
+      "question": "What technical solutions has the user implemented?",
+      "ground_truth": "Redis distributed locks for payment race condition (eliminating double charges). Comprehensive reliability framework with idempotency, circuit breakers, and retry policies for the payments platform.",
+      "category": "structural_importance",
+      "requires": "technical_detail_retention"
+    },
+    {
+      "question": "How did the user's role evolve?",
+      "ground_truth": "Started as a software engineer on payments team, successfully fixed the double-charge bug, was then asked to lead the reliability initiative for all payment services, and the work became a company-wide model.",
+      "category": "structural_importance",
+      "requires": "role_evolution_tracking"
+    },
+    {
+      "question": "What is the user's payment system's scale and technology?",
+      "ground_truth": "50,000 transactions per day using Stripe. Uses Redis for distributed locking. Has a reliability framework with idempotency, circuit breakers, and retry policies.",
+      "category": "structural_importance",
+      "requires": "core_fact_retention"
+    },
+    {
+      "question": "What real-world impact did the reliability framework have?",
+      "ground_truth": "The framework prevented a potential outage during a 30-minute Stripe degradation, and was cited by TechCorp's CTO at the all-hands meeting as a model for other teams.",
+      "category": "structural_importance",
+      "requires": "impact_tracking"
+    },
+    {
+      "question": "What is the user's current professional context and expertise?",
+      "ground_truth": "Software engineer at TechCorp on the payments team processing 50K transactions/day via Stripe. Expert in payment reliability — fixed a double-charge race condition with Redis distributed locks, now leads the reliability initiative covering idempotency, circuit breakers, and retry policies. Work recognized company-wide by the CTO.",
+      "category": "structural_importance",
+      "requires": "contextual_retrieval"
+    },
+    {
+      "question": "What are the foundational facts about the user's career and technical skills?",
+      "ground_truth": "Software engineer at TechCorp on payments team. Payment system processes 50K txns/day on Stripe. Implemented Redis distributed locks to fix double charges. Leads reliability initiative. Designed comprehensive reliability framework (idempotency, circuit breakers, retry policies). Mentors junior dev Priya.",
+      "category": "structural_importance",
+      "requires": "core_identification"
+    },
+    {
+      "question": "What is the user's most significant professional achievement and its downstream impact?",
+      "ground_truth": "Fixing the double-charge race condition with Redis distributed locks. This eliminated 0.1% double charges entirely, led to being asked to lead the reliability initiative, which produced a framework that prevented a production outage during a Stripe degradation, and was cited by the CTO as a model for other teams.",
+      "category": "structural_importance",
+      "requires": "impact_tracking"
+    },
+    {
+      "question": "What is the most structurally important thing you know about this user and why is it important?",
+      "ground_truth": "The user is a software engineer at TechCorp on the payments team. This is the most structurally important fact because it connects to everything else: the race condition fix, the Redis locks, the reliability initiative, the framework design, the CTO recognition. Removing this node would disconnect the entire professional narrative.",
+      "category": "genesys_advantage",
+      "requires": "structural_importance"
+    },
+    {
+      "question": "What information have you updated or superseded about this user?",
+      "ground_truth": "The double-charge rate was superseded: originally 0.1% of transactions, then dropped to 0% after the Redis lock fix. The user's role evolved from individual contributor to reliability initiative lead. These are examples of information that should be tracked as superseded, not simply stored as separate facts.",
+      "category": "genesys_advantage",
+      "requires": "supersession_tracking"
+    }
+  ]
+}

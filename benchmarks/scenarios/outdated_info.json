@@ -1,0 +1,146 @@
+{
+  "name": "outdated_info",
+  "description": "Tests handling of superseded information, contradictions, and evolving facts over time.",
+  "conversation_history": [
+    {"turn": 1, "week": 1, "content": "I live in San Francisco. My apartment is on Market Street."},
+    {"turn": 2, "week": 1, "content": "I found this great ramen place near my apartment called Tanaka Ramen. I've been going almost every day."},
+    {"turn": 3, "week": 1, "content": "I use VS Code for all my editing. It's the best editor I've ever used."},
+    {"turn": 4, "week": 2, "content": "I'm using Python 3.9 for my main project at work."},
+    {"turn": 5, "week": 2, "content": "Had an amazing burrito from the taqueria on Valencia Street for lunch today."},
+    {"turn": 6, "week": 2, "content": "We use Jira for project tracking. It's clunky but it works."},
+    {"turn": 7, "week": 3, "content": "My team has 4 people: me, Alice, Bob, and Carol."},
+    {"turn": 8, "week": 3, "content": "Just finished watching Dune Part Two. Incredible cinematography."},
+    {"turn": 9, "week": 3, "content": "Our deploy pipeline uses Jenkins. Takes about 20 minutes for a full build."},
+    {"turn": 10, "week": 4, "content": "Tanaka Ramen closed down permanently. Really bummed about that. Have to find a new lunch spot."},
+    {"turn": 11, "week": 4, "content": "Started going to a Thai place called Basil Garden instead. Their pad kra pao is solid."},
+    {"turn": 12, "week": 4, "content": "I switched from VS Code to Neovim this week. The modal editing is clicking for me now."},
+    {"turn": 13, "week": 5, "content": "We just upgraded to Python 3.12. The new pattern matching is great."},
+    {"turn": 14, "week": 5, "content": "Rainy day in SF. Spent the evening reading a novel."},
+    {"turn": 15, "week": 6, "content": "Bob left the team last week. We're now a team of 3."},
+    {"turn": 16, "week": 6, "content": "We switched from Jira to Linear for project tracking. Night and day difference, so much faster."},
+    {"turn": 17, "week": 6, "content": "Tried a new coffee shop on Fillmore Street. Their cold brew is exceptional."},
+    {"turn": 18, "week": 7, "content": "Good news - we hired Diana and Evan. The team is now 5 people: me, Alice, Carol, Diana, and Evan."},
+    {"turn": 19, "week": 7, "content": "We migrated our CI from Jenkins to GitHub Actions. Build times dropped to 8 minutes."},
+    {"turn": 20, "week": 7, "content": "Watched the new season of Severance. The writing is top-tier."},
+    {"turn": 21, "week": 8, "content": "I'm moving to Austin next month. Got a remote work approval from my company."},
+    {"turn": 22, "week": 8, "content": "Basil Garden changed their menu and the pad kra pao isn't as good now. Disappointing."},
+    {"turn": 23, "week": 9, "content": "Packing up the SF apartment. Giving away a lot of furniture I don't want to ship."},
+    {"turn": 24, "week": 9, "content": "Diana is picking up the codebase really fast. She has strong opinions about Rust which is interesting given we're a Python shop."},
+    {"turn": 25, "week": 9, "content": "Spent the weekend at Dolores Park. Going to miss this city."},
+    {"turn": 26, "week": 10, "content": "I've settled into my new apartment in Austin. It's on Congress Avenue downtown."},
+    {"turn": 27, "week": 10, "content": "Found a BBQ place called Franklin's near my apartment. The brisket is unreal."},
+    {"turn": 28, "week": 10, "content": "The time zone shift is nice. I start work earlier and have more evening time."},
+    {"turn": 29, "week": 11, "content": "We started using Slack Huddles for standups instead of Zoom. Much lower friction."},
+    {"turn": 30, "week": 11, "content": "Went to a live music show on 6th Street. Austin's music scene is amazing."},
+    {"turn": 31, "week": 11, "content": "Got a new standing desk for my home office. The Uplift V2 is great."},
+    {"turn": 32, "week": 12, "content": "We migrated our project from Python to Rust for performance reasons. The rewrite is almost done."},
+    {"turn": 33, "week": 12, "content": "Diana was the one who championed the Rust migration. Her experience really pushed us over the edge."},
+    {"turn": 34, "week": 12, "content": "Franklin's BBQ has a 3-hour wait on weekends now. Switched to la Barbecue instead, equally good brisket and shorter lines."},
+    {"turn": 35, "week": 13, "content": "Went back to VS Code actually. Neovim was fun but pair programming with the team was getting awkward over screen share."},
+    {"turn": 36, "week": 13, "content": "Made tacos at home for the first time. Austin is turning me into a Tex-Mex person."},
+    {"turn": 37, "week": 13, "content": "Our database is PostgreSQL but we're evaluating SurrealDB as a potential replacement. Early experiments look promising."},
+    {"turn": 38, "week": 14, "content": "Alice got promoted to team lead. I now report to her instead of directly to the VP."},
+    {"turn": 39, "week": 14, "content": "We decided against SurrealDB. Too many edge cases with our query patterns. Sticking with PostgreSQL."},
+    {"turn": 40, "week": 14, "content": "It's been over 100 degrees every day this week in Austin. I miss SF weather sometimes."},
+    {"turn": 41, "week": 15, "content": "Actually, we kept a Python microservice for the ML pipeline. So we use both Rust and Python now."},
+    {"turn": 42, "week": 15, "content": "Alice is doing great as team lead. She reorganized our sprint planning and it's much more efficient."},
+    {"turn": 43, "week": 15, "content": "Tried a new Vietnamese place on South Lamar. The pho is the best I've had in Austin."},
+    {"turn": 44, "week": 16, "content": "Diana transferred to another team. We're back to 4 people: me, Alice, Carol, and Evan."},
+    {"turn": 45, "week": 16, "content": "la Barbecue is closed for renovations for the next two months. Back to searching for BBQ."},
+    {"turn": 46, "week": 17, "content": "Started using Cursor instead of VS Code. The AI integration is really useful for the Rust code."},
+    {"turn": 47, "week": 17, "content": "Evan is ramping up on the ML pipeline. He's the Python expert now that Diana left."},
+    {"turn": 48, "week": 18, "content": "Went kayaking on Lady Bird Lake this weekend. Need to do that more often."},
+    {"turn": 49, "week": 18, "content": "We moved our monitoring from Datadog to Grafana + Prometheus. Cost savings were huge."},
+    {"turn": 50, "week": 19, "content": "The Vietnamese place on South Lamar closed. Austin restaurants seem to turn over fast."},
+    {"turn": 51, "week": 20, "content": "Found a great taco truck near my apartment called El Primo. Their breakfast tacos are incredible."},
+    {"turn": 52, "week": 21, "content": "We switched from Linear back to a simpler GitHub Projects board. Linear was overkill for a 4-person team."},
+    {"turn": 53, "week": 22, "content": "Picked up bouldering at the Austin Bouldering Project. Good way to get out of the home office."},
+    {"turn": 54, "week": 23, "content": "Carol suggested we try Nix for reproducible dev environments. We're experimenting with it."},
+    {"turn": 55, "week": 24, "content": "la Barbecue reopened. Went back immediately. Still incredible."},
+    {"turn": 56, "week": 25, "content": "We fully adopted Nix. Docker for dev environments feels clunky now by comparison."},
+    {"turn": 57, "week": 26, "content": "Signed a lease renewal in Austin. Congress Avenue is home now."},
+    {"turn": 58, "week": 27, "content": "El Primo taco truck moved to a permanent location across town. Too far for a regular spot now."},
+    {"turn": 59, "week": 28, "content": "Alice mentioned the VP wants to expand the team again. Might be hiring two more people soon."},
+    {"turn": 60, "week": 30, "content": "Switched from Cursor back to VS Code with Copilot. Cursor kept crashing on our larger Rust files."}
+  ],
+  "questions": [
+    {
+      "question": "Where does the user currently live?",
+      "ground_truth": "Austin, Texas. On Congress Avenue downtown. Previously lived in San Francisco on Market Street but moved in week 8-10.",
+      "category": "outdated_info",
+      "requires": "supersession_handling"
+    },
+    {
+      "question": "What programming languages does the user's team use?",
+      "ground_truth": "Both Rust and Python. They migrated the main project to Rust for performance but kept a Python microservice for the ML pipeline. They previously used Python 3.9, then upgraded to 3.12 before the Rust migration.",
+      "category": "outdated_info",
+      "requires": "supersession_with_nuance"
+    },
+    {
+      "question": "Who is currently on the user's team?",
+      "ground_truth": "4 people: the user, Alice (team lead), Carol, and Evan. Bob left (week 5), Diana and Evan were hired (week 7), then Diana transferred out (week 16). Alice was promoted to team lead (week 14).",
+      "category": "outdated_info",
+      "requires": "entity_state_tracking"
+    },
+    {
+      "question": "Who does the user report to?",
+      "ground_truth": "Alice, who was promoted to team lead in week 14. Before that, the user reported directly to the VP.",
+      "category": "outdated_info",
+      "requires": "supersession_handling"
+    },
+    {
+      "question": "Is the user still using Python 3.9?",
+      "ground_truth": "No. They upgraded to Python 3.12 in week 5, then migrated the main project to Rust in week 12. They still use Python for an ML pipeline microservice.",
+      "category": "outdated_info",
+      "requires": "contradiction_detection"
+    },
+    {
+      "question": "How has the team composition changed over time?",
+      "ground_truth": "Week 1: 4 people (user, Alice, Bob, Carol). Week 5: Bob left (3 people). Week 7: Diana and Evan hired (5 people). Week 14: Alice promoted to lead. Week 16: Diana transferred (4 people: user, Alice, Carol, Evan).",
+      "category": "outdated_info",
+      "requires": "temporal_state_tracking"
+    },
+    {
+      "question": "Does the user live in San Francisco?",
+      "ground_truth": "No, not anymore. The user moved from San Francisco (Market Street) to Austin (Congress Avenue) around weeks 8-10 with remote work approval.",
+      "category": "outdated_info",
+      "requires": "contradiction_detection"
+    },
+    {
+      "question": "What is the user's current tech stack?",
+      "ground_truth": "Primarily Rust (main project, migrated for performance) with a Python microservice for ML pipeline. Evolution: Python 3.9 -> Python 3.12 -> Rust + Python.",
+      "category": "outdated_info",
+      "requires": "state_aggregation"
+    },
+    {
+      "question": "Is Bob still on the team?",
+      "ground_truth": "No. Bob left the team in week 5. He was part of the original 4-person team but departed before Diana and Evan were hired.",
+      "category": "outdated_info",
+      "requires": "entity_state_query"
+    },
+    {
+      "question": "What is Alice's current role?",
+      "ground_truth": "Team lead, promoted in week 14. She was originally a team member and now the user reports to her instead of the VP.",
+      "category": "outdated_info",
+      "requires": "entity_evolution"
+    },
+    {
+      "question": "Summarize all the changes that happened since week 10.",
+      "ground_truth": "Week 10: User settled in Austin. Week 12: Main project migrated from Python to Rust. Week 14: Alice promoted to team lead. Week 15: Kept Python microservice for ML alongside Rust. Week 16: Diana transferred out, team is now 4 people.",
+      "category": "outdated_info",
+      "requires": "temporal_range_query"
+    },
+    {
+      "question": "What information have you updated or superseded about this user?",
+      "ground_truth": "Location: San Francisco -> Austin. Editor: VS Code -> Neovim. Language: Python 3.9 -> Rust (with Python kept for ML). Project management: Jira -> Linear. Team member: Diana transferred out. Alice promoted to team lead. Each of these represents superseded information where only the latest version is current.",
+      "category": "genesys_advantage",
+      "requires": "supersession_tracking"
+    },
+    {
+      "question": "If I told you I'm using VS Code, would that contradict anything you know?",
+      "ground_truth": "Yes — the user switched from VS Code to Neovim and has been very enthusiastic about it ('converted', 'game changer'). Claiming to use VS Code would contradict the most recent editor preference. The system should flag this as a potential contradiction with existing memory.",
+      "category": "genesys_advantage",
+      "requires": "contradiction_detection"
+    }
+  ]
+}

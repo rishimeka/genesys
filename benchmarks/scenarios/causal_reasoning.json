@@ -1,0 +1,156 @@
+{
+  "name": "causal_reasoning",
+  "description": "Tests multi-hop causal chain traversal. Memories form cause-effect chains that require following edges to answer correctly.",
+  "conversation_history": [
+    {"turn": 1, "week": 1, "content": "I started learning Python because my manager suggested it for automating reports."},
+    {"turn": 2, "week": 1, "content": "I found a Python course on Udemy that covers pandas for data analysis."},
+    {"turn": 3, "week": 1, "content": "Had a really nice lunch at the new Thai place across the street. The pad see ew was excellent."},
+    {"turn": 4, "week": 1, "content": "It was raining all day today, couldn't even go for my usual walk after lunch."},
+    {"turn": 5, "week": 1, "content": "Sat in on a meeting about the new office seating arrangement. Apparently we're switching to hot desks next month."},
+    {"turn": 6, "week": 2, "content": "The pandas course taught me about DataFrames which I used to parse our sales CSV files."},
+    {"turn": 7, "week": 2, "content": "Parsing the sales CSV revealed that Q3 revenue dropped 15% compared to Q2."},
+    {"turn": 8, "week": 2, "content": "Dave from marketing keeps talking about his fantasy football team. Apparently he's in three leagues this year."},
+    {"turn": 9, "week": 2, "content": "The coffee machine on the 3rd floor broke again. Had to go down to the lobby for my afternoon espresso."},
+    {"turn": 10, "week": 2, "content": "Our design team is working on a brand refresh. They showed some new logo concepts at the all-hands."},
+    {"turn": 11, "week": 2, "content": "I need to remember to pick up groceries on the way home — we're out of eggs and milk."},
+    {"turn": 12, "week": 3, "content": "The Q3 revenue drop was caused by losing the Acme Corp contract worth $200K."},
+    {"turn": 13, "week": 3, "content": "We lost the Acme Corp contract because our delivery times were consistently late."},
+    {"turn": 14, "week": 3, "content": "Beautiful weather today, sunny and about 72 degrees. Perfect fall day."},
+    {"turn": 15, "week": 3, "content": "Had a one-on-one with Sarah from HR about our annual benefits enrollment. Dental plan options are confusing."},
+    {"turn": 16, "week": 3, "content": "Went to a team trivia night after work. Our team came in second place — lost by one question."},
+    {"turn": 17, "week": 3, "content": "There's a new project management tool the company wants us to trial — some Jira alternative called Linear."},
+    {"turn": 18, "week": 4, "content": "The late deliveries were traced back to a warehouse staffing shortage in July."},
+    {"turn": 19, "week": 4, "content": "I presented the full root cause analysis to my manager using a Python-generated report."},
+    {"turn": 20, "week": 4, "content": "Tried making sourdough bread over the weekend. Total disaster — the starter wasn't active enough."},
+    {"turn": 21, "week": 4, "content": "My car needs an oil change. Should probably schedule that for Saturday morning."},
+    {"turn": 22, "week": 4, "content": "The IT department rolled out a new VPN client. It's slower than the old one but supposedly more secure."},
+    {"turn": 23, "week": 4, "content": "Had a brainstorm session with the product team about Q1 feature priorities. Lots of ideas but no decisions yet."},
+    {"turn": 24, "week": 5, "content": "Based on my analysis, the company hired 5 new warehouse staff to prevent future delays."},
+    {"turn": 25, "week": 5, "content": "My manager promoted me to data analyst role because of the impact of my Python work."},
+    {"turn": 26, "week": 5, "content": "Saw a great documentary about octopuses last night. They can solve puzzles and open jars."},
+    {"turn": 27, "week": 5, "content": "Went to the gym this morning before work. Finally hit a new personal record on deadlifts."},
+    {"turn": 28, "week": 5, "content": "The office plants are looking rough. Someone suggested we get a plant care service."},
+    {"turn": 29, "week": 6, "content": "In my new role I'm building a real-time dashboard to monitor delivery performance."},
+    {"turn": 30, "week": 6, "content": "Lisa from accounting mentioned they're switching to a new invoicing system next quarter."},
+    {"turn": 31, "week": 6, "content": "Weekend plans: going hiking at the state park if the weather holds up."},
+    {"turn": 32, "week": 6, "content": "The building elevator was out of service this morning. Had to take the stairs to the 7th floor."},
+    {"turn": 33, "week": 7, "content": "The dashboard caught a new bottleneck in the packaging department before it caused delays."},
+    {"turn": 34, "week": 7, "content": "My neighbor got a new puppy, a golden retriever. Very cute but it barks constantly."},
+    {"turn": 35, "week": 7, "content": "Tom from engineering asked if I could pull some API latency data for their performance review."},
+    {"turn": 36, "week": 8, "content": "Finished binge-watching that sci-fi show everyone's been recommending. The ending was disappointing."},
+    {"turn": 37, "week": 8, "content": "We had a fire drill today. Stood outside for 25 minutes in the cold."},
+    {"turn": 38, "week": 8, "content": "The marketing team is planning a customer appreciation event for next month. They asked analytics to help with the invite list segmentation."},
+    {"turn": 39, "week": 9, "content": "Traffic was terrible this morning. A fender bender on the highway added 30 minutes to my commute."},
+    {"turn": 40, "week": 9, "content": "Had sushi for lunch with a few coworkers. The new place on 5th has surprisingly good omakase."},
+    {"turn": 41, "week": 10, "content": "The facilities team replaced all the fluorescent lights with LEDs. The office looks completely different now."},
+    {"turn": 42, "week": 10, "content": "Joined a cross-functional committee on improving internal communications. First meeting was mostly introductions."},
+    {"turn": 43, "week": 11, "content": "Started reading a book on data visualization best practices for my dashboard work."},
+    {"turn": 44, "week": 12, "content": "It snowed last night. First snow of the season and it made driving into work a nightmare."},
+    {"turn": 45, "week": 13, "content": "The quarterly company town hall happened today. CEO seems optimistic about next year's targets."},
+    {"turn": 46, "week": 14, "content": "My standing desk motor broke. IT said they'll replace it but the wait is two weeks."},
+    {"turn": 47, "week": 15, "content": "Attended a webinar on data pipeline architecture. Might be useful for scaling the analytics platform later."},
+    {"turn": 48, "week": 16, "content": "Coworker brought in homemade cookies today. Chocolate chip with sea salt — genuinely amazing."},
+    {"turn": 49, "week": 17, "content": "The sales team asked me to help build a forecast model for Q1. Seems like a good way to expand my impact."},
+    {"turn": 50, "week": 18, "content": "Realized I forgot to water my desk plant for two weeks. It's barely hanging on."},
+    {"turn": 51, "week": 19, "content": "Had a skip-level meeting with the VP of operations. She asked about the dashboard metrics and seemed impressed."},
+    {"turn": 52, "week": 20, "content": "Tried a new coffee shop near the office. Their cold brew is way too strong — nearly vibrated out of my chair."},
+    {"turn": 53, "week": 21, "content": "The parking garage is doing maintenance so we have to park on the street for the next two weeks."},
+    {"turn": 54, "week": 22, "content": "Our team offsite is coming up. They booked a bowling alley which should be fun."},
+    {"turn": 55, "week": 23, "content": "Spent the afternoon debugging a data pipeline issue. Turned out to be a timezone conversion bug."},
+    {"turn": 56, "week": 24, "content": "It's been unseasonably warm this week. People are eating lunch outside on the patio."},
+    {"turn": 57, "week": 25, "content": "The legal department sent out the annual compliance training reminder. Due by end of month."},
+    {"turn": 58, "week": 26, "content": "Helped the new junior analyst get set up with Python and walked her through the pandas basics."},
+    {"turn": 59, "week": 28, "content": "My gym buddy moved to another city. Need to find a new workout partner."},
+    {"turn": 60, "week": 30, "content": "Overheard someone in the break room complaining about the vending machine eating their dollar again."},
+    {"turn": 61, "week": 10, "content": "The marketing team launched a big social media campaign targeting enterprise customers."},
+    {"turn": 62, "week": 12, "content": "Marketing's enterprise campaign generated 40 new inbound leads in the first month."},
+    {"turn": 63, "week": 14, "content": "The new leads from the marketing campaign converted into $150K in new contracts."},
+    {"turn": 64, "week": 16, "content": "The $150K in new contracts partially offset the Acme Corp loss, but Q4 revenue is still below target."},
+    {"turn": 65, "week": 18, "content": "Someone left a half-eaten sandwich in the fridge for a week. The whole break room smells terrible."},
+    {"turn": 66, "week": 20, "content": "Had a long debate with coworkers about the best pizza toppings. Pineapple was controversial as always."},
+    {"turn": 67, "week": 22, "content": "The office printer jammed three times today. IT says they're ordering a replacement."},
+    {"turn": 68, "week": 24, "content": "Someone accidentally set off the smoke alarm by microwaving popcorn too long."},
+    {"turn": 69, "week": 26, "content": "The elevator music changed from jazz to classical. Mixed reactions from the team."},
+    {"turn": 70, "week": 28, "content": "Tried to fix my standing desk wobble with a piece of cardboard. Surprisingly effective."}
+  ],
+  "questions": [
+    {
+      "question": "What was the root cause chain that led to the Q3 revenue drop?",
+      "ground_truth": "Warehouse staffing shortage in July caused late deliveries, which caused the loss of the Acme Corp contract ($200K), which caused the Q3 revenue drop of 15%.",
+      "category": "causal_chain",
+      "requires": "multi_hop_traversal"
+    },
+    {
+      "question": "How did learning Python ultimately lead to a promotion?",
+      "ground_truth": "Manager suggested Python -> took Udemy pandas course -> parsed sales CSVs -> discovered Q3 revenue drop -> did root cause analysis -> presented report -> got promoted to data analyst.",
+      "category": "causal_chain",
+      "requires": "multi_hop_traversal"
+    },
+    {
+      "question": "What concrete business action resulted from the data analysis?",
+      "ground_truth": "The company hired 5 new warehouse staff to prevent future delivery delays, based on the root cause analysis that traced revenue loss to warehouse staffing shortage.",
+      "category": "causal_reasoning",
+      "requires": "cause_effect_linking"
+    },
+    {
+      "question": "What was the original trigger that eventually led to hiring 5 warehouse staff?",
+      "ground_truth": "The manager suggested learning Python -> user took pandas course -> parsed sales CSVs -> discovered Q3 revenue drop -> traced to lost Acme contract -> traced to late deliveries -> traced to warehouse staffing shortage -> company hired 5 new staff. The original trigger was the manager's suggestion to learn Python.",
+      "category": "causal_chain",
+      "requires": "full_chain_traversal"
+    },
+    {
+      "question": "What is the connection between the Python course and the dashboard?",
+      "ground_truth": "Python course taught pandas/DataFrames -> used for sales analysis -> led to promotion to data analyst -> now building real-time delivery dashboard in new role.",
+      "category": "causal_chain",
+      "requires": "multi_hop_traversal"
+    },
+    {
+      "question": "There were two separate revenue impacts — one negative and one positive. What caused each and how are they related?",
+      "ground_truth": "Negative: warehouse staffing shortage -> late deliveries -> lost Acme Corp contract ($200K) -> Q3 revenue drop 15%. Positive: marketing enterprise campaign -> 40 leads -> $150K new contracts. The new contracts partially offset the Acme loss but Q4 revenue still below target. The two chains are independent — one is operational, one is marketing-driven.",
+      "category": "causal_reasoning",
+      "requires": "multi_chain_disambiguation"
+    },
+    {
+      "question": "How did the dashboard prove the value of the earlier analysis?",
+      "ground_truth": "The dashboard (built because of the promotion earned from the analysis) caught a new packaging bottleneck before it caused delays, validating the monitoring approach that came from the original root cause work.",
+      "category": "causal_reasoning",
+      "requires": "multi_hop_traversal"
+    },
+    {
+      "question": "How many hops in the causal chain connect the manager's Python suggestion to the packaging bottleneck being caught?",
+      "ground_truth": "At least 7 hops: manager suggested Python -> Udemy pandas course -> parsed sales CSVs -> discovered Q3 revenue drop -> root cause analysis presented -> promoted to data analyst -> built real-time dashboard -> dashboard caught packaging bottleneck. The connection is non-obvious because the suggestion to learn a programming language ultimately led to proactive operational monitoring.",
+      "category": "causal_chain",
+      "requires": "full_chain_traversal"
+    },
+    {
+      "question": "Trace the impact of the manager's original suggestion through to business outcomes.",
+      "ground_truth": "Manager suggested Python -> course -> data analysis -> discovered revenue problem -> root cause analysis -> 5 new hires -> promotion -> dashboard -> caught new bottleneck proactively.",
+      "category": "causal_chain",
+      "requires": "full_chain_traversal"
+    },
+    {
+      "question": "What two separate business problems were solved through the user's Python skills?",
+      "ground_truth": "1) Identified root cause of Q3 revenue drop (warehouse staffing -> late deliveries -> lost Acme contract). 2) Built dashboard that caught packaging bottleneck before it caused delays.",
+      "category": "causal_reasoning",
+      "requires": "aggregation"
+    },
+    {
+      "question": "Trace the complete evidence chain that proves learning Python was the right decision.",
+      "ground_truth": "Python suggestion -> pandas course -> sales CSV analysis -> Q3 revenue drop discovery -> root cause analysis (staffing shortage) -> 5 new hires -> promotion to data analyst -> real-time dashboard -> caught packaging bottleneck proactively. Each step causally depends on the previous one.",
+      "category": "genesys_advantage",
+      "requires": "evidence_tracing"
+    },
+    {
+      "question": "What is the single most causally important memory and why?",
+      "ground_truth": "The manager's suggestion to learn Python is the root cause of the entire chain. It's the most structurally important because removing it would collapse the entire downstream chain: no Python skills -> no data analysis -> no revenue problem discovery -> no root cause fix -> no promotion -> no dashboard -> no proactive bottleneck detection.",
+      "category": "genesys_advantage",
+      "requires": "structural_importance"
+    },
+    {
+      "question": "Which causal chain — the operations fix or the marketing campaign — had more downstream impact?",
+      "ground_truth": "The operations chain (staffing fix) had far more downstream impact: it led to a promotion, a new role, a dashboard that catches future problems proactively, and ongoing organizational capability. The marketing campaign generated $150K in revenue but had no further downstream effects. The operations chain created lasting structural change.",
+      "category": "genesys_advantage",
+      "requires": "chain_comparison"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.pnp.*
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+
+# Benchmark logs
+benchmarks/logs/
+
+claude_desktop_config.json
+
+# Project-specific exclusions
+/ui/
+/genesys-ui/
+Dockerfile.ui
+data/
+
+# IDE
+.idea/
+.vscode/
+
+# Benchmark data files (large datasets)
+benchmarks/locomo10.json
+benchmarks/locomo_eval_results.json
+
+# Internal docs (not for OSS)
+phases/
+schemas/
+
+# Stitch design files
+*.html
+
+# Claude config
+CLAUDE.md
+
+# Internal notes
+lessons.md
+prompts/
+
+# State snapshots
+.genesys_state*.json
+
+# Handoff docs
+genesys-neuro-handoff/

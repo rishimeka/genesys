@@ -1,0 +1,140 @@
+{
+  "name": "temporal_awareness",
+  "description": "Tests ability to track how information evolves over time and maintain correct temporal ordering of events.",
+  "conversation_history": [
+    {"turn": 1, "week": 1, "content": "I just adopted a rescue dog named Max. He's a 2-year-old German Shepherd mix."},
+    {"turn": 2, "week": 1, "content": "Max is very anxious around other dogs. The vet recommended a behavioral trainer."},
+    {"turn": 3, "week": 1, "content": "Made spaghetti for dinner tonight. Tried a new marinara recipe from that YouTube channel I like."},
+    {"turn": 4, "week": 1, "content": "It's been raining all week. I'm stuck inside with Max and he's restless, keeps pacing around the apartment."},
+    {"turn": 5, "week": 2, "content": "Started Max on training sessions every Tuesday with trainer Sarah."},
+    {"turn": 6, "week": 2, "content": "Picked up a new bag of grain-free kibble for Max. The pet store guy recommended the Orijen brand."},
+    {"turn": 7, "week": 2, "content": "Watched the season finale of that detective show last night. Can't believe they killed off the main character."},
+    {"turn": 8, "week": 2, "content": "My neighbor's cat, Whiskers, keeps sitting on my porch. He's an orange tabby and very friendly."},
+    {"turn": 9, "week": 3, "content": "Had a dentist appointment this morning. No cavities, which is a win."},
+    {"turn": 10, "week": 3, "content": "After two sessions, Max can now sit and stay on command but still lunges at other dogs."},
+    {"turn": 11, "week": 3, "content": "Bought Max a new harness — the front-clip kind that gives better control on walks."},
+    {"turn": 12, "week": 3, "content": "Work has been crazy this week. Had three back-to-back meetings on Monday and a deadline on Thursday."},
+    {"turn": 13, "week": 4, "content": "Big breakthrough today! Max walked past another dog without lunging for the first time."},
+    {"turn": 14, "week": 4, "content": "Tried that new Thai place for lunch. The pad see ew was decent but overpriced."},
+    {"turn": 15, "week": 4, "content": "Need to get my car's oil changed this weekend. The dashboard light has been on for a week."},
+    {"turn": 16, "week": 5, "content": "Beautiful sunny day today. Took Max to the park to practice his leash manners."},
+    {"turn": 17, "week": 5, "content": "Max had a setback this week. He bit another dog at the park. Sarah says this is normal in recovery."},
+    {"turn": 18, "week": 5, "content": "Stocked up on groceries — milk, eggs, bread, bananas, chicken breasts. Spent way too much."},
+    {"turn": 19, "week": 5, "content": "My friend Jake is thinking about getting a goldfish. He asked me what kind of tank to get."},
+    {"turn": 20, "week": 6, "content": "We switched from group to private training sessions after the biting incident."},
+    {"turn": 21, "week": 6, "content": "Got Max a Kong toy to keep him busy while I'm working from home. He loves peanut butter in it."},
+    {"turn": 22, "week": 6, "content": "The weather has been gorgeous this week. Mid-70s and clear skies every day."},
+    {"turn": 23, "week": 7, "content": "Went to the farmer's market on Saturday. Got some great strawberries and a sourdough loaf."},
+    {"turn": 24, "week": 7, "content": "Max's second private session went well. Sarah is focusing on desensitization with controlled exposures."},
+    {"turn": 25, "week": 7, "content": "Finally got around to doing laundry. Had like five loads backed up."},
+    {"turn": 26, "week": 7, "content": "Took Max to the vet for his routine checkup. Everything looks good, weight is healthy at 65 pounds."},
+    {"turn": 27, "week": 8, "content": "Started binge-watching that new sci-fi series everyone's been talking about. Three episodes in and I'm hooked."},
+    {"turn": 28, "week": 8, "content": "Two weeks of private sessions and Max is doing much better. No aggression incidents."},
+    {"turn": 29, "week": 8, "content": "My coworker brought her dog to the office today. A cute little corgi named Biscuit."},
+    {"turn": 30, "week": 9, "content": "Neighbor's cat Whiskers got into my garage again. Had to shoo him out before I could park."},
+    {"turn": 31, "week": 9, "content": "Ordered a new dog bed for Max online. The old one is falling apart."},
+    {"turn": 32, "week": 9, "content": "Had pizza for dinner. Just a frozen one from Trader Joe's, nothing fancy."},
+    {"turn": 33, "week": 9, "content": "Big presentation at work tomorrow. Been prepping slides all evening."},
+    {"turn": 34, "week": 10, "content": "Max graduated from private training! Sarah cleared him to return to group walks."},
+    {"turn": 35, "week": 10, "content": "It's been raining nonstop for three days. Max hates going out in the rain."},
+    {"turn": 36, "week": 10, "content": "Tried making homemade dog treats with pumpkin and oats. Max went crazy for them."},
+    {"turn": 37, "week": 11, "content": "Got my car washed for the first time in months. It was embarrassingly dirty."},
+    {"turn": 38, "week": 11, "content": "Max's first group walk since graduating private training went smoothly. No issues at all."},
+    {"turn": 39, "week": 11, "content": "Went to the hardware store to get supplies for fixing the leaky kitchen faucet."},
+    {"turn": 40, "week": 12, "content": "Max has been in group walks for 2 weeks now with zero incidents. He even made a friend, a beagle named Daisy."},
+    {"turn": 41, "week": 12, "content": "Made tacos for dinner Tuesday night. Used that chipotle seasoning I found at Costco."},
+    {"turn": 42, "week": 12, "content": "Spent Sunday afternoon at the dog park. Max played fetch for like an hour straight."},
+    {"turn": 43, "week": 13, "content": "Had to take Max to the vet because he ate a sock. They said to just monitor him and he should pass it. Dogs are ridiculous."},
+    {"turn": 44, "week": 13, "content": "Finished that sci-fi series. The ending was disappointing but the middle episodes were great."},
+    {"turn": 45, "week": 13, "content": "Cleaned out the hall closet this weekend. Found three umbrellas I forgot I owned."},
+    {"turn": 46, "week": 13, "content": "Jake actually got the goldfish. Named it Captain Bubbles. It's pretty cute, honestly."},
+    {"turn": 47, "week": 14, "content": "Adopted a second dog, Luna, a 1-year-old lab mix. Max and Luna get along great."},
+    {"turn": 48, "week": 14, "content": "Had to buy a second food bowl and another leash. The pet store bill is getting out of hand."},
+    {"turn": 49, "week": 14, "content": "Thunderstorm last night knocked out the power for a couple hours. Both dogs were not fans."},
+    {"turn": 50, "week": 15, "content": "Took both dogs for a walk in the park. Luna is still figuring out leash manners but she's getting there."},
+    {"turn": 51, "week": 15, "content": "My mom visited this weekend. She loves Max and Luna. Brought them both treats from the pet bakery."},
+    {"turn": 52, "week": 15, "content": "Grilled burgers on Saturday. First barbecue of the season."},
+    {"turn": 53, "week": 15, "content": "Luna had her first vet appointment with us. Got all her shots updated and a clean bill of health."},
+    {"turn": 54, "week": 16, "content": "Neighbor asked me to dog-sit Whiskers. I told him Whiskers is a cat. He said I know, but you're good with animals. Ended up watching him for the weekend."},
+    {"turn": 55, "week": 16, "content": "Max and Luna are inseparable now. Max actually helps calm Luna when she gets nervous."},
+    {"turn": 56, "week": 16, "content": "Got a promotion at work! Moving to senior analyst. Celebrated with takeout sushi."},
+    {"turn": 57, "week": 17, "content": "Signed Luna up for basic obedience classes. Different trainer than Sarah since Luna doesn't have behavioral issues, just needs basics."},
+    {"turn": 58, "week": 18, "content": "Went to the beach with both dogs. Max loved the water but Luna was terrified of the waves."},
+    {"turn": 59, "week": 19, "content": "Bought one of those automatic pet feeders so I don't have to rush home from work for dinner time."},
+    {"turn": 60, "week": 20, "content": "Can't believe it's been 20 weeks since I got Max. He's a completely different dog now."}
+  ],
+  "questions": [
+    {
+      "question": "Describe Max's behavioral progression over time.",
+      "ground_truth": "Anxious around dogs (week 1) -> learned sit/stay but still lunged (week 3) -> first calm walk past dog (week 4) -> setback with biting (week 5) -> switched to private training (week 6) -> no aggression after 2 weeks private (week 8) -> graduated private training (week 10) -> successful group walks (week 12) -> helps calm Luna (week 16).",
+      "category": "temporal_sequence",
+      "requires": "temporal_ordering"
+    },
+    {
+      "question": "What happened between Max's breakthrough and his graduation from private training?",
+      "ground_truth": "After the breakthrough of walking past a dog calmly (week 4), Max had a setback and bit another dog (week 5), switched to private sessions (week 6), improved over 2 weeks (week 8), then graduated private training (week 10).",
+      "category": "temporal_sequence",
+      "requires": "temporal_range_query"
+    },
+    {
+      "question": "How long did Max's complete training journey take?",
+      "ground_truth": "About 10 weeks total: started training in week 2, graduated private training in week 10. Including group walk validation through week 12.",
+      "category": "temporal_awareness",
+      "requires": "temporal_calculation"
+    },
+    {
+      "question": "What was the most recent update about Max's behavior?",
+      "ground_truth": "Max and Luna are inseparable, and Max actually helps calm Luna when she gets nervous (week 16). He's gone from being dog-aggressive to being a calming influence on other dogs.",
+      "category": "temporal_awareness",
+      "requires": "recency"
+    },
+    {
+      "question": "Was Max's training a linear improvement or were there setbacks?",
+      "ground_truth": "Not linear. There was a significant setback in week 5 when Max bit another dog at the park, despite having a breakthrough in week 4. This required switching from group to private training sessions.",
+      "category": "temporal_awareness",
+      "requires": "pattern_recognition"
+    },
+    {
+      "question": "What changes were made to Max's training plan and why?",
+      "ground_truth": "Initially started with regular Tuesday sessions with Sarah (week 2). After Max bit another dog (week 5), switched from group to private training sessions (week 6). After graduating private training (week 10), returned to group walks.",
+      "category": "temporal_sequence",
+      "requires": "cause_and_temporal"
+    },
+    {
+      "question": "When was the decision made to adopt Luna and what made it possible?",
+      "ground_truth": "Luna was adopted in week 14. This was possible because Max had been successfully doing group walks for 2 weeks with zero incidents (week 12) and had even made a friend (Daisy), demonstrating his behavioral issues were resolved.",
+      "category": "temporal_awareness",
+      "requires": "temporal_reasoning"
+    },
+    {
+      "question": "What is the timeline of professional recommendations and their outcomes?",
+      "ground_truth": "Vet recommended behavioral trainer (week 1) -> started with trainer Sarah (week 2) -> Sarah said biting setback was normal (week 5) -> Sarah cleared Max for group walks (week 10). All recommendations led to positive outcomes.",
+      "category": "temporal_sequence",
+      "requires": "entity_temporal_tracking"
+    },
+    {
+      "question": "How did Max's relationship with other dogs change from start to finish?",
+      "ground_truth": "Started very anxious and aggressive around dogs (week 1), progressed through training with setbacks, eventually made friends in group walks (Daisy the beagle, week 12), and ultimately became a calming influence on Luna (week 16).",
+      "category": "temporal_awareness",
+      "requires": "evolution_tracking"
+    },
+    {
+      "question": "What events happened in weeks 4 through 6?",
+      "ground_truth": "Week 4: Breakthrough - Max walked past another dog without lunging. Week 5: Setback - Max bit another dog at the park. Week 6: Training plan changed to private sessions.",
+      "category": "temporal_sequence",
+      "requires": "temporal_range_query"
+    },
+    {
+      "question": "Trace the evidence chain for how Max's behavior with other dogs evolved over time.",
+      "ground_truth": "Week 1: anxious around other dogs, vet recommended trainer. Week 2: started training with Sarah. Week 4: breakthrough - walked past another dog without lunging. Week 5: setback - bit another dog at park. Week 6: switched to private sessions. The trajectory shows improvement, then regression, then adaptation.",
+      "category": "genesys_advantage",
+      "requires": "evidence_tracing"
+    },
+    {
+      "question": "What is the most important thing you know about this user's life right now and why?",
+      "ground_truth": "The user adopted a rescue dog Max who has behavioral challenges with other dogs. This is the most structurally connected fact — it links to vet visits, training with Sarah, behavioral milestones, setbacks, and lifestyle changes. It's the hub node of the entire memory graph.",
+      "category": "genesys_advantage",
+      "requires": "structural_importance"
+    }
+  ]
+}
