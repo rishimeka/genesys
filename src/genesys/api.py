@@ -812,8 +812,16 @@ async def backfill_edges(request: Request):
 _MAX_SSE_PER_USER = 5
 
 @_fastapi.get("/events")
-async def sse_events():
+async def sse_events(request: Request):
     uid = current_user_id.get("__anonymous__")
+    # EventSource can't set headers, so also accept token as query param
+    if uid == "__anonymous__":
+        token_param = request.query_params.get("token", "")
+        if token_param:
+            resolved = await _resolve_user_from_token(token_param)
+            if resolved:
+                uid = resolved
+                current_user_id.set(uid)
     if uid == "__anonymous__" and not _DEV_MODE:
         return JSONResponse({"error": "Authentication required"}, status_code=401)
     # Cap SSE connections per user

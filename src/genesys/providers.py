@@ -70,9 +70,9 @@ def get_providers() -> Providers:
         if not vault_path:
             raise ValueError("OBSIDIAN_VAULT_PATH not set and no vault auto-detected")
 
-        graph = ObsidianGraphProvider(vault_path=vault_path)
-        cache = InMemoryCacheProvider()
         embeddings = OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""))
+        graph = ObsidianGraphProvider(vault_path=vault_path, embedding_provider=embeddings)
+        cache = InMemoryCacheProvider()
     else:
         from genesys.storage.cache import RedisCacheProvider
         from genesys.storage.falkordb import FalkorDBProvider

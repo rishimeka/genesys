@@ -27,11 +27,12 @@ _VAULT_USER_ID = "vault_user"
 class ObsidianGraphProvider:
     """GraphStorageProvider backed by an Obsidian vault + SQLite sidecar."""
 
-    def __init__(self, vault_path: str):
+    def __init__(self, vault_path: str, embedding_provider=None):
         self.vault_path = Path(vault_path)
         self.db_dir = self.vault_path / ".genesys"
         self.db_path = self.db_dir / "index.db"
         self._db: aiosqlite.Connection | None = None
+        self._embedder = embedding_provider
         # In-memory embedding cache: {node_id_str: np.array}
         self._embedding_cache: dict[str, np.ndarray] = {}
 
@@ -228,6 +229,31 @@ class ObsidianGraphProvider:
 
         await self.db.commit()
 
+        # Auto-embed any nodes missing embeddings
+        await self._embed_missing()
+
+    async def _embed_missing(self) -> None:
+        """Generate embeddings for all nodes that don't have one yet."""
+        if not self._embedder:
+            return
+        await self._load_embeddings()
+        async with self.db.execute("SELECT id, content_summary, content_full FROM memory_nodes") as cur:
+            all_nodes = await cur.fetchall()
+        to_embed = [
+            (row["id"], (row["content_full"] or row["content_summary"])[:8000])
+            for row in all_nodes
+            if row["id"] not in self._embedding_cache
+        ]
+        if not to_embed:
+            return
+        batch_size = 50
+        for i in range(0, len(to_embed), batch_size):
+            batch = to_embed[i : i + batch_size]
+            texts = [t for _, t in batch]
+            embeddings = await self._embedder.embed_batch(texts)
+            for (nid, _), emb in zip(batch, embeddings):
+                await self.store_embedding(nid, emb)
+
     async def _incremental_index(self, changed_files: list[str]) -> None:
         """Re-parse only changed files."""
         for rel in changed_files:
@@ -279,6 +305,7 @@ class ObsidianGraphProvider:
             )
 
         await self.db.commit()
+        await self._embed_missing()
 
     # -- embedding cache ------------------------------------------------------
 
