@@ -1,3 +1,5 @@
+[![PyPI](https://img.shields.io/pypi/v/genesys-memory)](https://pypi.org/project/genesys-memory/)
+
 # Genesys
 
 **The intelligence layer for AI memory.**
