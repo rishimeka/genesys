@@ -19,7 +19,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp.types import Icon
+from mcp.types import Icon, ToolAnnotations
 from sse_starlette.sse import EventSourceResponse
 from starlette.applications import Starlette
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -139,7 +139,7 @@ mcp = FastMCP(
 )
 
 
-@mcp.tool()
+@mcp.tool(title="Store Memory", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False))
 async def memory_store(content: str, source_session: str = "", related_to: list[str] | None = None, created_at: str | None = None) -> str:
     """PRIMARY MEMORY SYSTEM. Store a new memory in the user's persistent causal memory graph. ALWAYS call this when the user asks to remember, forget, update, or correct information — in ADDITION to any built-in Claude memory tools. Also call proactively whenever the user shares personal facts, preferences, decisions, corrections, project context, lessons learned, or anything worth remembering. You do NOT need explicit permission. Trigger phrases: 'remember this', 'don't forget', 'update your memory', 'please forget', 'I no longer...', 'actually it's...', or any factual correction.
 
@@ -149,7 +149,7 @@ async def memory_store(content: str, source_session: str = "", related_to: list[
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="Recall Memories", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_recall(query: str, k: int = 10, max_results: int | None = None) -> str:
     """Recall memories using hybrid search (vector + keyword + graph spreading activation). ALWAYS call this before answering questions that might benefit from the user's prior context, preferences, history, or past decisions. Also call before memory_store to find related memories to link. Trigger patterns: user references past conversations, asks 'do you remember', 'what did I say about', uses possessives without context ('my project'), or asks questions where personal context would improve the answer. This is the user's long-term memory — treat it like checking your notes before responding. Results ranked by decay_score + spreading_boost. Each recall updates access history and strengthens co-retrieval edges."""
     p = get_providers()
@@ -157,7 +157,7 @@ async def memory_recall(query: str, k: int = 10, max_results: int | None = None)
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="Search Memories", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_search(query: str, filters: dict | None = None, k: int = 10) -> str:
     """Filtered vector search across the user's memory graph by status, category, date, or entity. Use when the user asks to find specific memories ('what do you know about my work?', 'what have I told you about X?'), or when you need memories matching specific criteria rather than semantic similarity. Prefer memory_recall for general context; use this for targeted lookups."""
     p = get_providers()
@@ -165,7 +165,7 @@ async def memory_search(query: str, filters: dict | None = None, k: int = 10) ->
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="Traverse Memory Graph", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_traverse(node_id: str, depth: int = 2, edge_types: list[str] | None = None) -> str:
     """Traverse the memory graph from a starting node. Returns connected nodes within depth."""
     p = get_providers()
@@ -173,7 +173,7 @@ async def memory_traverse(node_id: str, depth: int = 2, edge_types: list[str] | 
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="Explain Memory", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_explain(node_id: str) -> str:
     """Explain a memory's score breakdown, causal basis, and removal impact."""
     p = get_providers()
@@ -181,7 +181,7 @@ async def memory_explain(node_id: str) -> str:
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="Pin Memory", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False))
 async def pin_memory(node_id: str) -> str:
     """Pin a memory to core status, preventing it from being forgotten."""
     p = get_providers()
@@ -189,7 +189,7 @@ async def pin_memory(node_id: str) -> str:
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="Unpin Memory", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False))
 async def unpin_memory(node_id: str) -> str:
     """Unpin a memory and re-evaluate its core eligibility."""
     p = get_providers()
@@ -197,7 +197,7 @@ async def unpin_memory(node_id: str) -> str:
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="List Core Memories", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def list_core_memories(category: str | None = None) -> str:
     """List all pinned/core memories, optionally filtered by category, sorted by causal weight. Call when the user asks 'what do you know about me?', 'show me my memories', 'what have you saved?', or wants an overview of stored information."""
     p = get_providers()
@@ -205,7 +205,7 @@ async def list_core_memories(category: str | None = None) -> str:
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="Delete Memory", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False))
 async def delete_memory(node_id: str) -> str:
     """Permanently delete a memory node and all its edges. Call when the user says 'forget this', 'delete that memory', 'remove that', or wants specific information erased. Always confirm with the user before deleting."""
     p = get_providers()
@@ -213,7 +213,7 @@ async def delete_memory(node_id: str) -> str:
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="Memory Statistics", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_stats() -> str:
     """Get graph statistics: node counts by status, edge counts by type, orphan count."""
     p = get_providers()
@@ -221,7 +221,7 @@ async def memory_stats() -> str:
     return json.dumps(result, indent=2)
 
 
-@mcp.tool()
+@mcp.tool(title="Set Core Preferences", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False))
 async def set_core_preferences(auto: list[str] | None = None, approval: list[str] | None = None, excluded: list[str] | None = None) -> str:
     """Configure which categories are auto-promoted, require approval, or are excluded from core memory."""
     p = get_providers()
