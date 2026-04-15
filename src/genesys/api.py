@@ -8,8 +8,8 @@ import logging
 import os
 import time
 from collections import defaultdict
-from urllib.parse import urlparse as _urlparse
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse as _urlparse
 
 from pathlib import Path
 
