@@ -7,6 +7,39 @@ from openai import AsyncOpenAI
 from genesys.storage.cache import RedisCacheProvider
 
 
+class LocalEmbeddingProvider:
+    """Local embedding provider using sentence-transformers (all-MiniLM-L6-v2).
+
+    No API key required. Model is lazy-loaded on first embed() call.
+    """
+
+    DIMENSION = 384
+
+    def __init__(self):
+        self._model = None
+
+    def _load_model(self):
+        if self._model is None:
+            from sentence_transformers import SentenceTransformer
+            self._model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    @property
+    def dimension(self) -> int:
+        return self.DIMENSION
+
+    async def embed(self, text: str) -> list[float]:
+        self._load_model()
+        vec = self._model.encode(text, normalize_embeddings=True)
+        return vec.tolist()
+
+    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        self._load_model()
+        vecs = self._model.encode(texts, normalize_embeddings=True)
+        return [v.tolist() for v in vecs]
+
+
 class OpenAIEmbeddingProvider:
     MODEL = "text-embedding-3-small"
     DIMENSION = 1536

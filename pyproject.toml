@@ -46,6 +46,9 @@ obsidian = [
     "watchdog>=4.0.0",
     "pyyaml>=6.0.0",
 ]
+local = [
+    "sentence-transformers>=2.2.0",
+]
 postgres = [
     "asyncpg>=0.29.0",
     "pgvector>=0.3.0",

@@ -9,7 +9,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from genesys.mcp.tools import MCPToolHandler
-from genesys.retrieval.embedding import OpenAIEmbeddingProvider
 from genesys.storage.base import CacheProvider, EmbeddingProvider, EventBusProvider, GraphStorageProvider
 
 load_dotenv()
@@ -29,6 +28,17 @@ class Providers:
 _instance: Providers | None = None
 
 
+def _make_embedder(cache=None) -> EmbeddingProvider:
+    """Create embedding provider based on GENESYS_EMBEDDER env var."""
+    embedder = os.getenv("GENESYS_EMBEDDER", "openai")
+    if embedder == "local":
+        from genesys.retrieval.embedding import LocalEmbeddingProvider
+        return LocalEmbeddingProvider()
+    else:
+        from genesys.retrieval.embedding import OpenAIEmbeddingProvider
+        return OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""), cache=cache)
+
+
 def get_providers() -> Providers:
     """Return the shared provider singleton, creating it on first call."""
     global _instance
@@ -44,14 +54,14 @@ def get_providers() -> Providers:
 
         graph = PostgresGraphProvider()
         cache = InMemoryCacheProvider()  # TODO: swap to Redis if needed
-        embeddings = OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""))
+        embeddings = _make_embedder()
     elif backend == "memory":
         from genesys.storage.memory import InMemoryCacheProvider, InMemoryGraphProvider
 
         default_persist = os.path.join(os.path.dirname(__file__), "..", "..", "data", "memories.json")
         graph = InMemoryGraphProvider(persist_path=os.getenv("GENESYS_PERSIST_PATH", default_persist))
         cache = InMemoryCacheProvider()
-        embeddings = OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""))
+        embeddings = _make_embedder()
     elif backend == "obsidian":
         from genesys.storage.memory import InMemoryCacheProvider
         from genesys.storage.obsidian import ObsidianGraphProvider
@@ -70,7 +80,7 @@ def get_providers() -> Providers:
         if not vault_path:
             raise ValueError("OBSIDIAN_VAULT_PATH not set and no vault auto-detected")
 
-        embeddings = OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""))
+        embeddings = _make_embedder()
         graph = ObsidianGraphProvider(vault_path=vault_path, embedding_provider=embeddings)
         cache = InMemoryCacheProvider()
     else:
@@ -81,7 +91,7 @@ def get_providers() -> Providers:
         port = int(os.getenv("FALKORDB_PORT", "6379"))
         graph = FalkorDBProvider(host=host, port=port)
         cache = RedisCacheProvider(host=host, port=port)
-        embeddings = OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""), cache=cache)
+        embeddings = _make_embedder(cache=cache)
 
     llm_provider = None
     event_bus = None

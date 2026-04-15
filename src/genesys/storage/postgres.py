@@ -27,7 +27,7 @@ def _row_to_node(row: asyncpg.Record) -> MemoryNode:
         status=MemoryStatus(row["status"]),
         content_summary=row["content_summary"],
         content_full=row["content_full"],
-        embedding=json.loads(row["embedding"]) if row["embedding"] else None,
+        embedding=_parse_embedding(row),
         created_at=row["created_at"],
         last_accessed_at=row["last_accessed_at"] or row["created_at"],
         last_reactivated_at=row["last_reactivated_at"] or row["created_at"],
@@ -62,12 +62,33 @@ def _embedding_literal(embedding: list[float]) -> str:
     return "[" + ",".join(str(f) for f in embedding) + "]"
 
 
+def _parse_embedding(row: asyncpg.Record) -> list[float] | None:
+    """Extract embedding from whichever column has data (1536 or 384)."""
+    # The SQL alias `embedding::text as embedding` gives us the 1536-dim as text
+    if row.get("embedding"):
+        return json.loads(row["embedding"])
+    # Fall back to embedding_384 if present (when using local embedder)
+    val = row.get("embedding_384")
+    if val is not None:
+        # Could be text or pgvector type — handle both
+        if isinstance(val, str):
+            return json.loads(val)
+        return list(val)
+    return None
+
+
 async def get_all_user_ids() -> list[str]:
     """Return all distinct user_ids that have memory nodes."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT DISTINCT user_id FROM memory_nodes")
     return [r["user_id"] for r in rows]
+
+
+def _embedding_col() -> str:
+    """Return the active embedding column based on GENESYS_EMBEDDER."""
+    import os
+    return "embedding_384" if os.getenv("GENESYS_EMBEDDER") == "local" else "embedding"
 
 
 class PostgresGraphProvider:
@@ -87,10 +108,11 @@ class PostgresGraphProvider:
         uid = _uid()
         pool = await get_pool()
         embedding_val = _embedding_literal(node.embedding) if node.embedding else None
+        col = _embedding_col()
         async with pool.acquire() as conn:
             await conn.execute(
-                """INSERT INTO memory_nodes
-                   (id, user_id, status, content_summary, content_full, embedding,
+                f"""INSERT INTO memory_nodes
+                   (id, user_id, status, content_summary, content_full, {col},
                     category, entity_refs, decay_score, causal_weight,
                     reactivation_count, reactivation_pattern, pinned, promotion_reason,
                     source_agent, source_session, created_at, last_accessed_at,
@@ -113,7 +135,7 @@ class PostgresGraphProvider:
         pool = await get_pool()
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT *, embedding::text as embedding FROM memory_nodes WHERE id = $1 AND user_id = $2",
+                "SELECT *, embedding::text as embedding, embedding_384::text as embedding_384 FROM memory_nodes WHERE id = $1 AND user_id = $2",
                 uuid.UUID(node_id), uid,
             )
         return _row_to_node(row) if row else None
@@ -123,7 +145,7 @@ class PostgresGraphProvider:
         "entity_refs", "decay_score", "causal_weight", "reactivation_count",
         "reactivation_pattern", "pinned", "promotion_reason", "source_agent",
         "source_session", "last_accessed_at", "last_reactivated_at", "metadata",
-        "reactivation_timestamps", "stability", "irrelevance_counter",
+        "reactivation_timestamps", "stability", "irrelevance_counter", "embedding_384",
     })
 
     async def update_node(self, node_id: str, updates: dict) -> None:
@@ -140,11 +162,12 @@ class PostgresGraphProvider:
             if key not in self._ALLOWED_UPDATE_COLUMNS:
                 raise ValueError(f"Invalid column for update: {key}")
             if key == "embedding":
+                col = _embedding_col()
                 if val is not None:
-                    set_parts.append(f"embedding = ${idx}::vector")
+                    set_parts.append(f"{col} = ${idx}::vector")
                     args.append(_embedding_literal(val))
                 else:
-                    set_parts.append(f"embedding = NULL")
+                    set_parts.append(f"{col} = NULL")
                 idx += 1
                 continue
             if key == "status" and isinstance(val, MemoryStatus):
@@ -175,7 +198,7 @@ class PostgresGraphProvider:
         pool = await get_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT *, embedding::text as embedding FROM memory_nodes WHERE user_id = $1 AND status = $2 ORDER BY created_at DESC LIMIT $3",
+                "SELECT *, embedding::text as embedding, embedding_384::text as embedding_384 FROM memory_nodes WHERE user_id = $1 AND status = $2 ORDER BY created_at DESC LIMIT $3",
                 uid, status.value, limit,
             )
         return [_row_to_node(r) for r in rows]
@@ -284,7 +307,7 @@ class PostgresGraphProvider:
                 JOIN memory_edges e ON (e.source_id = g.id OR e.target_id = g.id) AND e.user_id = $1 {type_filter}
                 WHERE g.d < $3
             )
-            SELECT DISTINCT mn.*, mn.embedding::text as embedding
+            SELECT DISTINCT mn.*, mn.embedding::text as embedding, mn.embedding_384::text as embedding_384
             FROM graph g
             JOIN memory_nodes mn ON mn.id = g.id AND mn.user_id = $1
             WHERE mn.id != $2
@@ -316,7 +339,7 @@ class PostgresGraphProvider:
                 JOIN memory_edges e ON {join_cond} AND e.user_id = $1 AND e.type IN ({placeholders})
                 WHERE c.d < 10
             )
-            SELECT DISTINCT mn.*, mn.embedding::text as embedding
+            SELECT DISTINCT mn.*, mn.embedding::text as embedding, mn.embedding_384::text as embedding_384
             FROM chain c
             JOIN memory_nodes mn ON mn.id = c.id AND mn.user_id = $1
             WHERE mn.id != $2
@@ -356,7 +379,7 @@ class PostgresGraphProvider:
         pool = await get_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                """SELECT mn.*, mn.embedding::text as embedding FROM memory_nodes mn
+                """SELECT mn.*, mn.embedding::text as embedding, mn.embedding_384::text as embedding_384, embedding_384::text as embedding_384 FROM memory_nodes mn
                    WHERE mn.user_id = $1
                      AND NOT EXISTS (
                        SELECT 1 FROM memory_edges me
@@ -374,8 +397,9 @@ class PostgresGraphProvider:
         pool = await get_pool()
         emb_lit = _embedding_literal(embedding)
         k = int(k)  # Enforce integer to prevent injection
+        col = _embedding_col()
 
-        conditions = ["user_id = $1", "embedding IS NOT NULL"]
+        conditions = ["user_id = $1", f"{col} IS NOT NULL"]
         args: list = [uid]
         idx = 2
 
@@ -394,11 +418,11 @@ class PostgresGraphProvider:
 
         where = " AND ".join(conditions)
         query = f"""
-            SELECT *, embedding::text as embedding,
-                   1 - (embedding <=> {emb_param}::vector) AS similarity
+            SELECT *, embedding::text as embedding, embedding_384::text as embedding_384,
+                   1 - ({col} <=> {emb_param}::vector) AS similarity
             FROM memory_nodes
             WHERE {where}
-            ORDER BY embedding <=> {emb_param}::vector
+            ORDER BY {col} <=> {emb_param}::vector
             LIMIT {limit_param}
         """
         async with pool.acquire() as conn:
@@ -430,7 +454,7 @@ class PostgresGraphProvider:
         where = " AND ".join(conditions)
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                f"SELECT *, embedding::text as embedding FROM memory_nodes WHERE {where} LIMIT {limit_param}",
+                f"SELECT *, embedding::text as embedding, embedding_384::text as embedding_384 FROM memory_nodes WHERE {where} LIMIT {limit_param}",
                 *args,
             )
         return [_row_to_node(r) for r in rows]

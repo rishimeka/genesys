@@ -94,6 +94,27 @@ On first start, Genesys indexes all `.md` files in the vault and generates embed
 
 > If `OBSIDIAN_VAULT_PATH` is not set, Genesys auto-detects by looking for `.obsidian/` in `~/Documents/personal`, `~/Documents/Obsidian`, and `~/obsidian`.
 
+#### Fully local (no API keys)
+
+Use the local embedding provider to run Obsidian mode with zero external dependencies:
+
+```bash
+pip install 'genesys-memory[obsidian,local]'
+```
+
+```env
+GENESYS_BACKEND=obsidian
+GENESYS_EMBEDDER=local
+OBSIDIAN_VAULT_PATH=/path/to/your/vault
+# No OPENAI_API_KEY needed
+```
+
+```bash
+uvicorn genesys.api:app --port 8000
+```
+
+This uses `all-MiniLM-L6-v2` (384-dim) via `sentence-transformers` for embeddings. The model is downloaded on first use (~80 MB).
+
 Connect Claude Desktop — add to your `claude_desktop_config.json`:
 
 ```json
@@ -113,7 +134,7 @@ claude mcp add --transport http genesys http://localhost:8000/mcp
 ```
 
 > **Give this to Claude to set it up for you:**
-> *"Install genesys-memory[obsidian], create a .env with my OpenAI key, set GENESYS_BACKEND=obsidian and OBSIDIAN_VAULT_PATH to my vault at [YOUR_VAULT_PATH], start the server on port 8000, and connect it as an MCP server."*
+> *"Install genesys-memory[obsidian,local], create a .env with GENESYS_BACKEND=obsidian, GENESYS_EMBEDDER=local, and OBSIDIAN_VAULT_PATH to my vault at [YOUR_VAULT_PATH], start the server on port 8000, and connect it as an MCP server. No API keys needed."*
 
 ### Option 4: FalkorDB (graph-native)
 
@@ -267,9 +288,10 @@ Copy `.env.example` to `.env` and set:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | Yes | Embeddings |
+| `OPENAI_API_KEY` | Unless `GENESYS_EMBEDDER=local` | Embeddings |
 | `ANTHROPIC_API_KEY` | No | LLM memory processing (consolidation, contradiction detection) |
 | `GENESYS_BACKEND` | No | `memory` (default), `postgres`, `obsidian`, or `falkordb` |
+| `GENESYS_EMBEDDER` | No | `openai` (default) or `local` (sentence-transformers, no API key) |
 | `DATABASE_URL` | If postgres | Postgres connection string |
 | `OBSIDIAN_VAULT_PATH` | If obsidian | Path to your Obsidian vault |
 | `FALKORDB_HOST` | If falkordb | FalkorDB host (default: `localhost`) |
