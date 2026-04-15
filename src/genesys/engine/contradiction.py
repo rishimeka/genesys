@@ -1,7 +1,6 @@
 """Contradiction detection between memories."""
 from __future__ import annotations
 
-import uuid
 
 from genesys.models.edge import MemoryEdge
 from genesys.models.enums import EdgeType, MemoryStatus

@@ -214,7 +214,6 @@ class FalkorDBProvider:
         else:
             pattern = "(m:Memory {id: $id})-[r]-(n:Memory)"
 
-        type_filter = f":{edge_type.value.upper()}" if edge_type else ""
         # FalkorDB doesn't support variable rel type filter easily, use post-filter
         query = f"MATCH {pattern} RETURN r, m.id, n.id, type(r)"
         result = self._graph.query(query, {"id": node_id})

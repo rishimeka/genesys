@@ -8,6 +8,7 @@ import logging
 import os
 import time
 from collections import defaultdict
+from urllib.parse import urlparse as _urlparse
 from contextlib import asynccontextmanager
 
 from pathlib import Path
@@ -85,7 +86,6 @@ def _verify_admin(request: Request) -> bool:
 _public_url = os.getenv("GENESYS_PUBLIC_URL", "http://localhost:8000")
 
 # Startup safety checks
-from urllib.parse import urlparse as _urlparse
 _parsed_public = _urlparse(_public_url)
 if _DEV_MODE and _parsed_public.hostname not in ("localhost", "127.0.0.1", "::1"):
     raise RuntimeError(
