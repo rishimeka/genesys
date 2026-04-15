@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -49,6 +50,27 @@ def get_providers() -> Providers:
 
         default_persist = os.path.join(os.path.dirname(__file__), "..", "..", "data", "memories.json")
         graph = InMemoryGraphProvider(persist_path=os.getenv("GENESYS_PERSIST_PATH", default_persist))
+        cache = InMemoryCacheProvider()
+        embeddings = OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""))
+    elif backend == "obsidian":
+        from genesys.storage.memory import InMemoryCacheProvider
+        from genesys.storage.obsidian import ObsidianGraphProvider
+
+        vault_path = os.getenv("OBSIDIAN_VAULT_PATH", "")
+        if not vault_path:
+            # Auto-detect by looking for .obsidian/ in common locations
+            for candidate in [
+                Path.home() / "Documents" / "personal",
+                Path.home() / "Documents" / "Obsidian",
+                Path.home() / "obsidian",
+            ]:
+                if (candidate / ".obsidian").exists():
+                    vault_path = str(candidate)
+                    break
+        if not vault_path:
+            raise ValueError("OBSIDIAN_VAULT_PATH not set and no vault auto-detected")
+
+        graph = ObsidianGraphProvider(vault_path=vault_path)
         cache = InMemoryCacheProvider()
         embeddings = OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""))
     else:

@@ -41,6 +41,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+obsidian = [
+    "aiosqlite>=0.19.0",
+    "watchdog>=4.0.0",
+    "pyyaml>=6.0.0",
+]
 postgres = [
     "asyncpg>=0.29.0",
     "pgvector>=0.3.0",

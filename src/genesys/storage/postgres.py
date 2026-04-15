@@ -123,7 +123,7 @@ class PostgresGraphProvider:
         "entity_refs", "decay_score", "causal_weight", "reactivation_count",
         "reactivation_pattern", "pinned", "promotion_reason", "source_agent",
         "source_session", "last_accessed_at", "last_reactivated_at", "metadata",
-        "reactivation_timestamps", "stability",
+        "reactivation_timestamps", "stability", "irrelevance_counter",
     })
 
     async def update_node(self, node_id: str, updates: dict) -> None:
