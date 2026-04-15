@@ -268,6 +268,12 @@ class InMemoryGraphProvider:
                 results.append(node)
         return results[:k]
 
+    async def store_embedding(self, node_id: str, embedding: list[float]) -> None:
+        node = self.nodes.get(node_id)
+        if node:
+            node.embedding = embedding
+            self._save()
+
     async def get_stats(self) -> dict:
         max_cw = 0
         for nid in self.nodes:

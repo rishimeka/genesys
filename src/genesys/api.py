@@ -338,6 +338,13 @@ async def lifespan(app: FastAPI):
     # Load user preferences from cache
     await p.tools.preferences.load()
 
+    # Preload local embedding model if applicable
+    from genesys.retrieval.embedding import LocalEmbeddingProvider
+    if isinstance(p.embeddings, LocalEmbeddingProvider):
+        logger.info("Preloading local embedding model (all-MiniLM-L6-v2)...")
+        p.embeddings._load_model()
+        logger.info("Local embedding model ready.")
+
     # Start background decay scoring
     decay_task = asyncio.create_task(_decay_loop(p))
 
@@ -719,6 +726,12 @@ async def get_stats():
             "orphan_count": len(orphans),
         }
     return raw
+
+
+@_fastapi.get("/health")
+async def health():
+    """Simple health check — no auth required."""
+    return {"status": "ok"}
 
 
 @_fastapi.post("/admin/clear-user")
