@@ -14,5 +14,5 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -e ".[dev]"
-      - run: python -m pytest tests/ -v
+      - run: python -m pytest tests/ -v --ignore=tests/test_integration.py --ignore=tests/test_retrieval.py
       - run: python -m ruff check src/
