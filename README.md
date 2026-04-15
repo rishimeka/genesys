@@ -94,6 +94,24 @@ On first start, Genesys indexes all `.md` files in the vault and generates embed
 
 > If `OBSIDIAN_VAULT_PATH` is not set, Genesys auto-detects by looking for `.obsidian/` in `~/Documents/personal`, `~/Documents/Obsidian`, and `~/obsidian`.
 
+Connect Claude Desktop — add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "genesys": {
+      "url": "http://localhost:8000/mcp"
+    }
+  }
+}
+```
+
+Or for Claude Code:
+
+```bash
+claude mcp add --transport http genesys http://localhost:8000/mcp
+```
+
 > **Give this to Claude to set it up for you:**
 > *"Install genesys-memory[obsidian], create a .env with my OpenAI key, set GENESYS_BACKEND=obsidian and OBSIDIAN_VAULT_PATH to my vault at [YOUR_VAULT_PATH], start the server on port 8000, and connect it as an MCP server."*
 
@@ -206,7 +224,7 @@ Because the formula is multiplicative, a memory must score on *all three* axes t
                     └────┬────┘
                          │ continued decay
                     ┌────▼────┐
-           ┌───────│ FADING  │
+           ┌────────│ FADING  │
            │        └─────────┘
            │ score=0, orphan,
            │ not pinned
@@ -251,8 +269,10 @@ Copy `.env.example` to `.env` and set:
 |----------|----------|-------------|
 | `OPENAI_API_KEY` | Yes | Embeddings |
 | `ANTHROPIC_API_KEY` | No | LLM memory processing (consolidation, contradiction detection) |
-| `GENESYS_BACKEND` | No | `memory` (default) or `postgres` |
+| `GENESYS_BACKEND` | No | `memory` (default), `postgres`, `obsidian`, or `falkordb` |
 | `DATABASE_URL` | If postgres | Postgres connection string |
+| `OBSIDIAN_VAULT_PATH` | If obsidian | Path to your Obsidian vault |
+| `FALKORDB_HOST` | If falkordb | FalkorDB host (default: `localhost`) |
 | `GENESYS_USER_ID` | No | Default user ID for single-tenant mode |
 
 See [`.env.example`](.env.example) for all options.
