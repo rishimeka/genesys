@@ -4,14 +4,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Callable
+from typing import Callable
 
 import redis.asyncio as aioredis
 
 from genesys.core_memory.promoter import evaluate_core_promotion, promote_to_core
 from genesys.engine.contradiction import detect_contradictions
 from genesys.engine.reactivation import cascade_reactivate
-from genesys.models.enums import EdgeType, MemoryStatus
+from genesys.models.enums import MemoryStatus
 from genesys.models.edge import MemoryEdge
 from genesys.storage.base import EmbeddingProvider, GraphStorageProvider, LLMProvider
 

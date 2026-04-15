@@ -1,7 +1,6 @@
 """Episodic → semantic consolidation."""
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 
 from genesys.models.edge import MemoryEdge

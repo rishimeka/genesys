@@ -7,6 +7,7 @@ Vault files are never modified.
 from __future__ import annotations
 
 import hashlib
+import json as _json_mod
 import re
 import uuid
 from datetime import datetime, timezone
@@ -330,7 +331,6 @@ class ObsidianGraphProvider:
 
     async def create_node(self, node: MemoryNode) -> str:
         nid = str(node.id)
-        now = datetime.now(timezone.utc).isoformat()
         await self.db.execute(
             """INSERT INTO memory_nodes
                (id, status, content_summary, content_full, content_ref, created_at,
@@ -589,8 +589,6 @@ class ObsidianGraphProvider:
 
 
 # -- helpers ------------------------------------------------------------------
-
-import json as _json_mod
 
 
 def _json_dumps(obj) -> str:
