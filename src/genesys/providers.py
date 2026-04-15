@@ -99,6 +99,12 @@ def get_providers() -> Providers:
     if anthropic_key:
         from genesys.engine.llm_provider import AnthropicLLMProvider
         llm_provider = AnthropicLLMProvider(api_key=anthropic_key)
+    else:
+        import logging
+        logging.getLogger("genesys").warning(
+            "ANTHROPIC_API_KEY not set — consolidation, contradiction detection, "
+            "and causal inference will be disabled"
+        )
 
         redis_url = os.getenv("REDIS_URL", "")
         if backend != "memory" and redis_url:
