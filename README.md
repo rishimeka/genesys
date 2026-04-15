@@ -18,7 +18,9 @@ Your AI remembers everything but understands nothing. Genesys fixes that.
 
 ## Quick Start
 
-### Install from PyPI
+### Option 1: In-Memory (zero dependencies)
+
+The fastest way to try Genesys. No database required — state is kept in memory and optionally persisted to a JSON file.
 
 ```bash
 pip install genesys-memory
@@ -28,24 +30,106 @@ cp .env.example .env
 uvicorn genesys.api:app --port 8000
 ```
 
-### With Postgres + pgvector
+To persist across restarts, set `GENESYS_PERSIST_PATH` in `.env`:
+
+```env
+GENESYS_PERSIST_PATH=.genesys_state.json
+```
+
+> **Give this to Claude to set it up for you:**
+> *"Install genesys-memory, create a .env with my OpenAI key, start the server on port 8000 with the in-memory backend, and connect it as an MCP server."*
+
+### Option 2: Postgres + pgvector (production)
+
+Persistent, scalable storage with vector search via pgvector.
 
 ```bash
-pip install genesys-memory[postgres]
+pip install 'genesys-memory[postgres]'
 cp .env.example .env
-# Set OPENAI_API_KEY and DATABASE_URL in .env
+```
 
+Edit `.env`:
+
+```env
+OPENAI_API_KEY=sk-...
+GENESYS_BACKEND=postgres
+DATABASE_URL=postgresql://genesys:genesys@localhost:5432/genesys
+```
+
+Start Postgres and run migrations:
+
+```bash
 docker compose up -d postgres
 alembic upgrade head
 GENESYS_BACKEND=postgres uvicorn genesys.api:app --port 8000
 ```
+
+> **Give this to Claude to set it up for you:**
+> *"Install genesys-memory[postgres], start a Postgres container with pgvector using docker compose, run alembic migrations, create a .env with my OpenAI key and DATABASE_URL, start the server with GENESYS_BACKEND=postgres, and connect it as an MCP server."*
+
+### Option 3: Obsidian Vault (local-first)
+
+Turns your Obsidian vault into a Genesys memory store. Markdown files become memory nodes, `[[wikilinks]]` become causal edges. A SQLite sidecar (`.genesys/index.db`) handles indexing.
+
+```bash
+pip install 'genesys-memory[obsidian]'
+cp .env.example .env
+```
+
+Edit `.env`:
+
+```env
+OPENAI_API_KEY=sk-...
+GENESYS_BACKEND=obsidian
+OBSIDIAN_VAULT_PATH=/path/to/your/vault
+```
+
+Start the server:
+
+```bash
+uvicorn genesys.api:app --port 8000
+```
+
+On first start, Genesys indexes all `.md` files in the vault and generates embeddings. A file watcher re-indexes incrementally when you edit notes.
+
+> If `OBSIDIAN_VAULT_PATH` is not set, Genesys auto-detects by looking for `.obsidian/` in `~/Documents/personal`, `~/Documents/Obsidian`, and `~/obsidian`.
+
+> **Give this to Claude to set it up for you:**
+> *"Install genesys-memory[obsidian], create a .env with my OpenAI key, set GENESYS_BACKEND=obsidian and OBSIDIAN_VAULT_PATH to my vault at [YOUR_VAULT_PATH], start the server on port 8000, and connect it as an MCP server."*
+
+### Option 4: FalkorDB (graph-native)
+
+Uses FalkorDB (Redis-based graph database) for native graph traversal.
+
+```bash
+pip install 'genesys-memory[falkordb]'
+cp .env.example .env
+```
+
+Edit `.env`:
+
+```env
+OPENAI_API_KEY=sk-...
+GENESYS_BACKEND=falkordb
+FALKORDB_HOST=localhost
+```
+
+Start FalkorDB and the server:
+
+```bash
+docker compose up -d falkordb
+uvicorn genesys.api:app --port 8000
+```
+
+> **Give this to Claude to set it up for you:**
+> *"Install genesys-memory[falkordb], start a FalkorDB container using docker compose, create a .env with my OpenAI key and GENESYS_BACKEND=falkordb, start the server on port 8000, and connect it as an MCP server."*
 
 ### From source
 
 ```bash
 git clone https://github.com/rishimeka/genesys.git
 cd genesys
-pip install -e ".[dev]"
+pip install -e '.[dev]'
 ```
 
 ## Connect to your AI
@@ -151,11 +235,12 @@ Full results and reproduction steps in [`benchmarks/`](benchmarks/).
 
 ## Storage backends
 
-| Backend | Status | Use case |
-|---------|--------|----------|
+| Backend | Install | Use case |
+|---------|---------|----------|
 | `memory` | Built-in | Zero deps, try it out |
-| `postgres` + pgvector | Production | Persistent, scalable |
-| Obsidian | Coming soon | Local-first knowledge base |
+| `postgres` + pgvector | `pip install 'genesys-memory[postgres]'` | Persistent, scalable |
+| Obsidian vault | `pip install 'genesys-memory[obsidian]'` | Local-first knowledge base |
+| FalkorDB | `pip install 'genesys-memory[falkordb]'` | Graph-native traversal |
 | Custom | Bring your own | Implement `GraphStorageProvider` |
 
 ## Configuration
