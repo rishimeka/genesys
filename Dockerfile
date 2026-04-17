@@ -5,7 +5,9 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src/ src/
 
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=0.1.0
 RUN pip install --no-cache-dir ".[postgres]" psycopg2-binary
+
 
 COPY alembic/ alembic/
 COPY alembic.ini .
