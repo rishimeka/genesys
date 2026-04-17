@@ -61,6 +61,15 @@ def get_providers() -> Providers:
         graph = InMemoryGraphProvider(persist_path=os.getenv("GENESYS_PERSIST_PATH", default_persist))
         cache = InMemoryCacheProvider()
         embeddings = _make_embedder()
+    elif backend == "mongo":
+        from genesys.storage.memory import InMemoryCacheProvider
+        from genesys.storage.mongo import MongoGraphProvider
+
+        conn_str = os.getenv("MONGO_CONNECTION_STRING", "mongodb://localhost:27017")
+        db_name = os.getenv("MONGO_DATABASE", "genesys")
+        graph = MongoGraphProvider(connection_string=conn_str, database=db_name)
+        cache = InMemoryCacheProvider()
+        embeddings = _make_embedder()
     elif backend == "obsidian":
         from genesys.storage.memory import InMemoryCacheProvider
         from genesys.storage.obsidian import ObsidianGraphProvider
