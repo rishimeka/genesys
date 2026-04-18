@@ -5,7 +5,7 @@
 **The intelligence layer for AI memory.**
 
 > Scoring engine + causal graph + lifecycle manager for AI agent memory. Speaks MCP natively.
-
+<img width="1920" height="1080" alt="Export-2" src="https://github.com/user-attachments/assets/b85bad82-8531-4fdb-a2d6-592aeef530fd" />
 ## What is this
 
 Genesys is not another vector database. It's a scoring engine + causal graph + lifecycle manager that makes AI memory actually *work*. Memories are scored by a multiplicative formula (relevance × connectivity × reactivation), connected in a causal graph, and actively forgotten when they become irrelevant. It plugs into any storage backend and speaks MCP natively.
