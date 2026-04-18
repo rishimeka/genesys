@@ -1,4 +1,5 @@
 [![PyPI](https://img.shields.io/pypi/v/genesys-memory)](https://pypi.org/project/genesys-memory/)
+<img width="1920" height="1080" alt="Export-2" src="https://github.com/user-attachments/assets/9dbf1578-aad2-4e1b-8300-2950cca975da" />
 
 # Genesys
 
