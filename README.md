@@ -9,7 +9,7 @@
 
 ## What is this
 
-Genesys is not another vector database. It's a scoring engine + causal graph + lifecycle manager that makes AI memory actually *work*. Memories are scored by a multiplicative formula (relevance × connectivity × reactivation), connected in a causal graph, and actively forgotten when they become irrelevant. It plugs into any storage backend and speaks MCP natively.
+Genesys is a scoring engine, causal graph, and lifecycle manager for AI memory. Memories are scored by a multiplicative formula (relevance × connectivity × reactivation), connected in a causal graph, and actively forgotten when they become irrelevant. It plugs into any storage backend and speaks MCP natively.
 
 ## Why
 
@@ -20,6 +20,8 @@ Genesys is not another vector database. It's a scoring engine + causal graph + l
 Your AI remembers everything but understands nothing. Genesys fixes that.
 
 ## Quick Start
+
+> **Most people should start with Option 1 (in-memory).** If you want fully local with no API keys, jump to [Option 3: Obsidian + local](#fully-local-no-api-keys).
 
 ### Option 1: In-Memory (zero dependencies)
 
@@ -235,26 +237,10 @@ decay_score = relevance × connectivity × reactivation
 Because the formula is multiplicative, a memory must score on *all three* axes to survive. A highly connected but never-accessed memory still decays. A frequently recalled but causally orphaned memory still fades.
 
 ```
-                    ┌─────────┐
-                    │  STORE  │
-                    └────┬────┘
-                         │
-                    ┌────▼────┐
-                    │ ACTIVE  │◄──── reactivation
-                    └────┬────┘
-                         │ decay
-                    ┌────▼────┐
-                    │ DORMANT │
-                    └────┬────┘
-                         │ continued decay
-                    ┌────▼────┐
-           ┌────────│ FADING  │
-           │        └─────────┘
-           │ score=0, orphan,
-           │ not pinned
-      ┌────▼────┐
-      │ PRUNED  │
-      └─────────┘
+STORE → ACTIVE → DORMANT → FADING → PRUNED
+           ↑                    │
+           └── reactivation ────┘
+                                  (only if score=0, orphan, not pinned)
 ```
 
 Memories can also be promoted to **core** status — structurally important memories that are auto-pinned and never pruned.
@@ -273,7 +259,7 @@ Tested on the [LoCoMo](https://arxiv.org/abs/2402.06397) long-conversation memor
 
 Answer model: `gpt-4o-mini` | Judge model: `gpt-4o-mini` | Retrieval k=20
 
-Full results and reproduction steps in [`benchmarks/`](benchmarks/).
+For context, Mem0 scored 67.1% and Zep scored 75.1% on the same benchmark. Full reproduction scripts are in [`benchmarks/`](benchmarks/).
 
 ## Storage backends
 
@@ -301,6 +287,10 @@ Copy `.env.example` to `.env` and set:
 | `GENESYS_USER_ID` | No | Default user ID for single-tenant mode |
 
 See [`.env.example`](.env.example) for all options.
+
+## Built by
+
+Genesys is built by [Rishi Meka](https://github.com/rishimeka) at [Astrix Labs](https://astrixlabs.ai). It came out of frustration with re-explaining project context to Claude every session. The goal is the intelligence layer between your LLM and your memory — fully open source.
 
 ## Contributing
 
