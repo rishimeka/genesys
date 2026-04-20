@@ -5,7 +5,7 @@
 **The intelligence layer for AI memory.**
 
 > Scoring engine + causal graph + lifecycle manager for AI agent memory. Speaks MCP natively.
-<img width="1512" height="827" alt="image" src="https://github.com/user-attachments/assets/fd1058ed-1623-4493-8edd-cf6ee8cf36ff" />
+<img width="1512" height="827" alt="image" src="https://github.com/user-attachments/assets/d152aa07-a852-4b8e-9f98-942d0bebd497" />
 
 ## What is this
 
