@@ -1,4 +1,4 @@
-![PyPI](https://img.shields.io/pypi/v/genesys-memory)](https://pypi.org/project/genesys-memory/)
+![PyPI](https://img.shields.io/pypi/v/genesys-memory)
 
 # Genesys
 
