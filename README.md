@@ -1,4 +1,4 @@
-<img width="1512" height="827" alt="image" src="https://github.com/user-attachments/assets/7359afd6-9db9-4849-ae2a-c8dba96cbedd" />[![PyPI](https://img.shields.io/pypi/v/genesys-memory)](https://pypi.org/project/genesys-memory/)
+![PyPI](https://img.shields.io/pypi/v/genesys-memory)](https://pypi.org/project/genesys-memory/)
 
 # Genesys
 
