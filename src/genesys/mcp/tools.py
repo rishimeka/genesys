@@ -120,12 +120,9 @@ class MCPToolHandler:
         read_only: bool = False,
     ) -> dict:
         """Recall memories by hybrid search: vector + keyword, ranked by vector similarity."""
-        embedding = await self.embeddings.embed(query)
+        import asyncio
 
-        # 1. Vector search (k results)
-        vector_results = await self.graph.vector_search(embedding, k=k)
-
-        # 2. Keyword search (k results) — extract key terms
+        # Extract keyword terms while embedding runs
         _stopwords = {
             "what", "when", "where", "who", "how", "why", "which", "does", "did",
             "has", "have", "had", "was", "were", "are", "is", "the", "a", "an",
@@ -134,10 +131,20 @@ class MCPToolHandler:
             "much", "her", "his", "its", "their", "she", "he", "it", "they",
         }
         terms = [w for w in query.lower().split() if w.strip("?.,!'\"") not in _stopwords and len(w) > 2]
+
+        # Run embedding + all keyword searches concurrently
+        kw_coros = [self.graph.keyword_search(t.strip("?.,!'\""), k=k) for t in terms[:5]]
+        embed_and_kw = await asyncio.gather(self.embeddings.embed(query), *kw_coros)
+        embedding = embed_and_kw[0]
+        kw_results_per_term = embed_and_kw[1:]
+
+        # 1. Vector search (needs embedding)
+        vector_results = await self.graph.vector_search(embedding, k=k)
+
+        # 2. Collect keyword hits
         kw_node_ids: set[str] = set()
         kw_nodes_map: dict[str, MemoryNode] = {}
-        for term in terms[:5]:
-            kw_nodes = await self.graph.keyword_search(term.strip("?.,!'\""), k=k)
+        for kw_nodes in kw_results_per_term:
             for node in kw_nodes:
                 nid = str(node.id)
                 kw_node_ids.add(nid)
