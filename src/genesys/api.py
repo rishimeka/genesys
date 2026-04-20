@@ -612,6 +612,24 @@ async def store_memory_rest(body: dict):
     return result
 
 
+@_fastapi.post("/memories/{node_id}/pin")
+async def pin_memory_rest(node_id: str):
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
+    p = get_providers()
+    result = await p.tools.pin_memory(node_id=node_id)
+    return result
+
+
+@_fastapi.post("/memories/{node_id}/unpin")
+async def unpin_memory_rest(node_id: str):
+    if not _require_auth():
+        return JSONResponse({"error": "Authentication required"}, status_code=401)
+    p = get_providers()
+    result = await p.tools.unpin_memory(node_id=node_id)
+    return result
+
+
 @_fastapi.post("/recall")
 async def recall_memories_rest(body: dict):
     if not _require_auth():
