@@ -1,11 +1,12 @@
-[![PyPI](https://img.shields.io/pypi/v/genesys-memory)](https://pypi.org/project/genesys-memory/)
+<img width="1512" height="827" alt="image" src="https://github.com/user-attachments/assets/7359afd6-9db9-4849-ae2a-c8dba96cbedd" />[![PyPI](https://img.shields.io/pypi/v/genesys-memory)](https://pypi.org/project/genesys-memory/)
 
 # Genesys
 
 **The intelligence layer for AI memory.**
 
 > Scoring engine + causal graph + lifecycle manager for AI agent memory. Speaks MCP natively.
-<img width="1920" height="1080" alt="Export-2" src="https://github.com/user-attachments/assets/b85bad82-8531-4fdb-a2d6-592aeef530fd" />
+<img width="1512" height="827" alt="image" src="https://github.com/user-attachments/assets/fd1058ed-1623-4493-8edd-cf6ee8cf36ff" />
+
 ## What is this
 
 Genesys is not another vector database. It's a scoring engine + causal graph + lifecycle manager that makes AI memory actually *work*. Memories are scored by a multiplicative formula (relevance × connectivity × reactivation), connected in a causal graph, and actively forgotten when they become irrelevant. It plugs into any storage backend and speaks MCP natively.
