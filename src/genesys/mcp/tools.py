@@ -198,6 +198,30 @@ class MCPToolHandler:
         cap = max_results if max_results is not None else k
         memories = memories[:cap]
 
+        # Update reactivation state for returned nodes (skip in read_only mode)
+        if not read_only:
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc)
+            for mem in memories:
+                nid = mem.get("id")
+                if not nid:
+                    continue
+                try:
+                    node = await self.graph.get_node(nid)
+                    if node:
+                        new_count = node.reactivation_count + 1
+                        new_timestamps = list(node.reactivation_timestamps or [])
+                        new_timestamps.append(now)
+                        new_stability = node.stability + (0.1 / node.stability)
+                        await self.graph.update_node(nid, {
+                            "reactivation_count": new_count,
+                            "reactivation_timestamps": new_timestamps,
+                            "stability": new_stability,
+                        })
+                        mem["reactivation_count"] = new_count
+                except Exception:
+                    pass
+
         return {"query": query, "results": memories, "count": len(memories)}
 
     async def _format_memory(self, node: MemoryNode, score: float) -> dict:
