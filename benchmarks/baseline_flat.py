@@ -5,8 +5,8 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from genesys.engine.scoring import cosine_similarity
-from genesys.storage.base import EmbeddingProvider
+from genesys_memory.engine.scoring import cosine_similarity
+from genesys_memory.storage.base import EmbeddingProvider
 
 
 @dataclass
