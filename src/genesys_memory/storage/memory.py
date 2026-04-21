@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json as _json
 from pathlib import Path
+from typing import Any
 
 from genesys_memory.context import current_user_id
 from genesys_memory.engine.scoring import cosine_similarity
@@ -21,7 +22,7 @@ def _uid() -> str:
 class InMemoryCacheProvider:
     """CacheProvider backed by a plain dict."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._data: dict[str, str] = {}
 
     async def get(self, key: str) -> str | None:
@@ -118,7 +119,7 @@ class InMemoryGraphProvider:
     async def get_node(self, node_id: str) -> MemoryNode | None:
         return self.nodes.get(node_id)
 
-    async def update_node(self, node_id: str, updates: dict) -> None:
+    async def update_node(self, node_id: str, updates: dict[str, Any]) -> None:
         node = self.nodes.get(node_id)
         if node:
             for k, v in updates.items():
@@ -274,7 +275,7 @@ class InMemoryGraphProvider:
             node.embedding = embedding
             self._save()
 
-    async def get_stats(self) -> dict:
+    async def get_stats(self) -> dict[str, Any]:
         max_cw = 0
         for nid in self.nodes:
             cw = 0

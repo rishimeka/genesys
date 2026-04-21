@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
+from typing import Any
 
 from genesys_memory.core_memory.preferences import CoreMemoryPreferences
 from genesys_memory.core_memory.promoter import evaluate_core_promotion
@@ -19,7 +20,7 @@ class MCPToolHandler:
         embeddings: EmbeddingProvider | None,
         cache: CacheProvider,
         event_bus: EventBusProvider | None = None,
-        on_change: Callable | None = None,
+        on_change: Callable[..., Any] | None = None,
     ):
         self.graph = graph
         self.embeddings = embeddings
@@ -28,7 +29,7 @@ class MCPToolHandler:
         self.on_change = on_change
         self.preferences = CoreMemoryPreferences(cache)
 
-    async def _notify(self, event_type: str, data: dict) -> None:
+    async def _notify(self, event_type: str, data: dict[str, Any]) -> None:
         if self.on_change:
             await self.on_change(event_type, data)
 
@@ -38,13 +39,13 @@ class MCPToolHandler:
         source_session: str = "",
         related_to: list[str] | None = None,
         created_at: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Store a new memory. Returns the node ID.
 
         Args:
             created_at: Optional ISO 8601 timestamp. Defaults to now.
         """
-        embedding = await self.embeddings.embed(content)
+        embedding = await self.embeddings.embed(content) if self.embeddings else []
         summary = content[:200]
 
         ts = datetime.fromisoformat(created_at) if created_at else datetime.now(timezone.utc)
@@ -118,7 +119,7 @@ class MCPToolHandler:
         k: int = 10,
         max_results: int | None = None,
         read_only: bool = False,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Recall memories by hybrid search: vector + keyword, ranked by vector similarity."""
         import asyncio
 
@@ -134,9 +135,11 @@ class MCPToolHandler:
 
         # Run embedding + all keyword searches concurrently
         kw_coros = [self.graph.keyword_search(t.strip("?.,!'\""), k=k) for t in terms[:5]]
-        embed_and_kw = await asyncio.gather(self.embeddings.embed(query), *kw_coros)
-        embedding = embed_and_kw[0]
-        kw_results_per_term = embed_and_kw[1:]
+        if not self.embeddings:
+            return {"query": query, "results": [], "count": 0}
+        embed_and_kw: list[Any] = await asyncio.gather(self.embeddings.embed(query), *kw_coros)
+        embedding: list[float] = embed_and_kw[0]
+        kw_results_per_term: list[list[MemoryNode]] = embed_and_kw[1:]
 
         # 1. Vector search (needs embedding)
         vector_results = await self.graph.vector_search(embedding, k=k)
@@ -152,7 +155,7 @@ class MCPToolHandler:
 
         # 3. Merge by union, track vector scores and keyword membership
         from genesys_memory.engine.scoring import cosine_similarity
-        merged: dict[str, dict] = {}  # node_id -> {"node": ..., "vec_score": ..., "in_both": bool}
+        merged: dict[str, dict[str, Any]] = {}
 
         vector_ids: set[str] = set()
         for node, score in vector_results:
@@ -203,17 +206,17 @@ class MCPToolHandler:
             from datetime import datetime, timezone
             now = datetime.now(timezone.utc)
             for mem in memories:
-                nid = mem.get("id")
-                if not nid:
+                mem_id: str | None = mem.get("id")
+                if not mem_id:
                     continue
                 try:
-                    node = await self.graph.get_node(nid)
-                    if node:
-                        new_count = node.reactivation_count + 1
-                        new_timestamps = list(node.reactivation_timestamps or [])
+                    recalled = await self.graph.get_node(mem_id)
+                    if recalled:
+                        new_count = recalled.reactivation_count + 1
+                        new_timestamps = list(recalled.reactivation_timestamps or [])
                         new_timestamps.append(now)
-                        new_stability = node.stability + (0.1 / node.stability)
-                        await self.graph.update_node(nid, {
+                        new_stability = recalled.stability + (0.1 / recalled.stability)
+                        await self.graph.update_node(mem_id, {
                             "reactivation_count": new_count,
                             "reactivation_timestamps": new_timestamps,
                             "stability": new_stability,
@@ -224,7 +227,7 @@ class MCPToolHandler:
 
         return {"query": query, "results": memories, "count": len(memories)}
 
-    async def _format_memory(self, node: MemoryNode, score: float) -> dict:
+    async def _format_memory(self, node: MemoryNode, score: float) -> dict[str, Any]:
         """Format a memory node with causal chain info."""
         causal_basis = []
         causal_chain = []
@@ -267,10 +270,12 @@ class MCPToolHandler:
     async def memory_search(
         self,
         query: str,
-        filters: dict | None = None,
+        filters: dict[str, Any] | None = None,
         k: int = 10,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Filtered vector search by status/category/date/entity."""
+        if not self.embeddings:
+            return {"query": query, "results": [], "count": 0}
         embedding = await self.embeddings.embed(query)
 
         # Determine status filter
@@ -310,7 +315,7 @@ class MCPToolHandler:
         node_id: str,
         depth: int = 2,
         edge_types: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Subgraph traversal returning connected nodes."""
         parsed_types = [EdgeType(t) for t in edge_types] if edge_types else None
         nodes = await self.graph.traverse(node_id, depth, parsed_types)
@@ -327,7 +332,7 @@ class MCPToolHandler:
 
         return {"start_node": node_id, "depth": depth, "nodes": result_nodes, "count": len(result_nodes)}
 
-    async def memory_explain(self, node_id: str) -> dict:
+    async def memory_explain(self, node_id: str) -> dict[str, Any]:
         """Score breakdown, causal basis, and removal impact for a memory."""
         node = await self.graph.get_node(node_id)
         if not node:
@@ -374,7 +379,7 @@ class MCPToolHandler:
             "removal_impact": removal_impact,
         }
 
-    async def pin_memory(self, node_id: str) -> dict:
+    async def pin_memory(self, node_id: str) -> dict[str, Any]:
         """Pin a memory to core status."""
         node = await self.graph.get_node(node_id)
         if not node:
@@ -388,7 +393,7 @@ class MCPToolHandler:
         await self._notify("memory.pinned", {"node_id": node_id})
         return {"node_id": node_id, "status": "pinned", "new_status": "core"}
 
-    async def unpin_memory(self, node_id: str) -> dict:
+    async def unpin_memory(self, node_id: str) -> dict[str, Any]:
         """Unpin a memory and re-evaluate core eligibility."""
         node = await self.graph.get_node(node_id)
         if not node:
@@ -397,8 +402,10 @@ class MCPToolHandler:
         await self.graph.update_node(node_id, {"pinned": False})
 
         # Re-evaluate: refresh node after unpin
-        node = await self.graph.get_node(node_id)
-        should_stay_core, reason = await evaluate_core_promotion(node, self.graph)
+        refreshed = await self.graph.get_node(node_id)
+        if not refreshed:
+            return {"node_id": node_id, "status": "unpinned", "new_status": "unknown"}
+        should_stay_core, reason = await evaluate_core_promotion(refreshed, self.graph)
 
         if not should_stay_core:
             await self.graph.update_node(node_id, {
@@ -411,7 +418,7 @@ class MCPToolHandler:
         await self._notify("memory.unpinned", {"node_id": node_id, "new_status": "core"})
         return {"node_id": node_id, "status": "unpinned", "new_status": "core", "reason": reason}
 
-    async def list_core_memories(self, category: str | None = None) -> dict:
+    async def list_core_memories(self, category: str | None = None) -> dict[str, Any]:
         """List all core memories, optionally filtered by category."""
         nodes = await self.graph.get_nodes_by_status(MemoryStatus.CORE, limit=500)
 
@@ -436,7 +443,7 @@ class MCPToolHandler:
 
         return {"core_memories": memories, "count": len(memories)}
 
-    async def delete_memory(self, node_id: str) -> dict:
+    async def delete_memory(self, node_id: str) -> dict[str, Any]:
         """Hard delete a memory node and all its edges."""
         node = await self.graph.get_node(node_id)
         if not node:
@@ -446,7 +453,7 @@ class MCPToolHandler:
         await self._notify("memory.deleted", {"node_id": node_id})
         return {"node_id": node_id, "status": "deleted"}
 
-    async def memory_stats(self) -> dict:
+    async def memory_stats(self) -> dict[str, Any]:
         """Return graph statistics."""
         stats = await self.graph.get_stats()
         return stats
@@ -456,7 +463,7 @@ class MCPToolHandler:
         auto: list[str] | None = None,
         approval: list[str] | None = None,
         excluded: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Update core memory category preferences."""
         result = await self.preferences.update(auto=auto, approval=approval, excluded=excluded)
         return {"status": "updated", "preferences": result}

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from genesys_memory.storage.base import CacheProvider
@@ -15,10 +15,10 @@ class LocalEmbeddingProvider:
 
     DIMENSION = 384
 
-    def __init__(self):
-        self._model = None
+    def __init__(self) -> None:
+        self._model: Any = None
 
-    def _load_model(self):
+    def _load_model(self) -> None:
         if self._model is None:
             from sentence_transformers import SentenceTransformer
             self._model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -29,8 +29,8 @@ class LocalEmbeddingProvider:
 
     async def embed(self, text: str) -> list[float]:
         self._load_model()
-        vec = self._model.encode(text, normalize_embeddings=True)
-        return vec.tolist()
+        vec: list[float] = self._model.encode(text, normalize_embeddings=True).tolist()
+        return vec
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         if not texts:
@@ -61,12 +61,13 @@ class OpenAIEmbeddingProvider:
             import json
             cached = await self._cache.get(self._cache_key(text))
             if cached:
-                return json.loads(cached)
+                result: list[float] = json.loads(cached)
+                return result
 
         if len(text) > 8000:
             text = text[:8000]
         response = await self._client.embeddings.create(input=[text], model=self.MODEL)
-        vec = response.data[0].embedding
+        vec: list[float] = response.data[0].embedding
 
         if self._cache:
             import json

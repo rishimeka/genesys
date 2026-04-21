@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -15,7 +16,7 @@ tools = providers.tools
 app = Server("genesys")
 
 # Tool name → (method, required_args, optional_args_with_defaults)
-_TOOL_DISPATCH: dict[str, tuple] = {
+_TOOL_DISPATCH: dict[str, tuple[Any, ...]] = {
     "memory_store": (tools.memory_store, ["content"], {"source_session": "", "related_to": None}),
     "memory_recall": (tools.memory_recall, ["query"], {"k": 10, "max_results": None}),
     "memory_search": (tools.memory_search, ["query"], {"filters": None, "k": 10}),
@@ -96,13 +97,13 @@ _TOOL_SCHEMAS = [
 ]
 
 
-@app.list_tools()
+@app.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]
 async def list_tools() -> list[Tool]:
     return _TOOL_SCHEMAS
 
 
-@app.call_tool()
-async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+@app.call_tool()  # type: ignore[untyped-decorator]
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     if name not in _TOOL_DISPATCH:
         return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
@@ -115,7 +116,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
 
-async def main():
+async def main() -> None:
     graph = providers.graph
     await graph.initialize(providers.user_id)
 

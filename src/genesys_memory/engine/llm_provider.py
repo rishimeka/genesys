@@ -19,7 +19,8 @@ class AnthropicLLMProvider:
             max_tokens=max_tokens,
             messages=[{"role": "user", "content": prompt}],
         )
-        return resp.content[0].text.strip()
+        block = resp.content[0]
+        return str(getattr(block, "text", "")).strip()
 
     async def extract_entities(self, text: str) -> list[str]:
         prompt = (
@@ -32,7 +33,8 @@ class AnthropicLLMProvider:
         )
         raw = await self._ask(prompt, max_tokens=512)
         try:
-            return json.loads(raw)
+            result: list[str] = json.loads(raw)
+            return result
         except json.JSONDecodeError:
             return []
 

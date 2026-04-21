@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -15,4 +16,4 @@ class MemoryEdge(BaseModel):
     type: EdgeType
     weight: float = 0.7
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: dict | None = None
+    metadata: dict[str, Any] | None = None

@@ -23,7 +23,8 @@ class RedisCacheProvider:
         self._redis = aioredis.Redis(host=host, port=port, decode_responses=True)
 
     async def get(self, key: str) -> str | None:
-        return await self._redis.get(key)
+        result: str | None = await self._redis.get(key)
+        return result
 
     async def set(self, key: str, value: str, ttl_seconds: int = 300) -> None:
         await self._redis.set(key, value, ex=ttl_seconds)

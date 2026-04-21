@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from genesys_memory.engine import config
 from genesys_memory.engine.scoring import calculate_decay_score
@@ -15,9 +16,9 @@ async def evaluate_transitions(
     llm: LLMProvider,
     context_embedding: list[float] | None = None,
     context_entities: list[str] | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Evaluate non-core, non-pruned nodes for status transitions."""
-    transitions: list[dict] = []
+    transitions: list[dict[str, Any]] = []
     stats = await graph.get_stats()
     max_cw = stats.get("max_causal_weight", 1)
 

@@ -38,7 +38,7 @@ class CoreMemoryPreferences:
         auto: list[str] | None = None,
         approval: list[str] | None = None,
         excluded: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, list[str]]:
         if auto is not None:
             self.auto_categories = auto
         if approval is not None:

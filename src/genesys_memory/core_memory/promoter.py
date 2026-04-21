@@ -7,6 +7,7 @@ Category-based promotion is kept as a fast path.
 from __future__ import annotations
 
 import math
+from typing import Any
 
 from genesys_memory.engine import config
 from genesys_memory.engine.scoring import base_level_activation
@@ -53,7 +54,7 @@ async def consolidation_score(
     # Stability as proxy for importance (grows with retrieval)
     stability_norm = min(node.stability / config.STABILITY_CAP, 1.0)
 
-    return (
+    return float(
         config.CORE_ACTIVATION_WEIGHT * activation_norm +
         config.CORE_HUB_WEIGHT * hub_score +
         config.CORE_SCHEMA_WEIGHT * schema_match +
@@ -84,7 +85,7 @@ async def evaluate_core_promotion(
 async def promote_to_core(node_id: str, reason: str, graph: GraphStorageProvider) -> None:
     """Promote a node to core status."""
     node = await graph.get_node(node_id)
-    updates = {
+    updates: dict[str, Any] = {
         "status": MemoryStatus.CORE,
         "promotion_reason": reason,
     }

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from genesys_memory.engine import config
 from genesys_memory.models.enums import MemoryStatus
@@ -39,7 +40,7 @@ async def cascade_reactivate(
                 visited.add(nid_str)
                 next_level.append(nid_str)
 
-                updates: dict = {
+                updates: dict[str, Any] = {
                     "reactivation_count": neighbor.reactivation_count + 1,
                     "last_reactivated_at": now,
                 }
