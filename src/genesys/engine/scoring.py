@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 
+from genesys.engine import config
 from genesys.models.enums import ReactivationPattern
 from genesys.models.node import MemoryNode
 from genesys.storage.base import EmbeddingProvider, GraphStorageProvider
@@ -33,7 +34,7 @@ def calculate_reactivation_durability(pattern: ReactivationPattern, count: int) 
 def base_level_activation(
     timestamps: list[datetime],
     created_at: datetime,
-    d: float = 0.5,
+    d: float = config.ACTR_DECAY_EXPONENT,
 ) -> float:
     """ACT-R base-level activation: B_i = ln(Σ t_j^{-d}).
 
@@ -76,7 +77,7 @@ async def calculate_decay_score(
     else:
         keyword_overlap = 0.0
 
-    relevance = 0.7 * vector_sim + 0.3 * keyword_overlap
+    relevance = config.RELEVANCE_VECTOR_WEIGHT * vector_sim + config.RELEVANCE_KEYWORD_WEIGHT * keyword_overlap
 
     if context_embedding is None:
         now = datetime.now(timezone.utc)
@@ -93,8 +94,8 @@ async def calculate_decay_score(
 
     if await graph.is_orphan(str(node.id)):
         connectivity_factor = 0.0
-    elif connectivity_factor < 0.1:
-        connectivity_factor = 0.1
+    elif connectivity_factor < config.MIN_CONNECTIVITY:
+        connectivity_factor = config.MIN_CONNECTIVITY
 
     # Force 3: ACT-R base-level activation
     b_i = base_level_activation(node.reactivation_timestamps, node.created_at)

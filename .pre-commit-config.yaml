@@ -1,0 +1,24 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
+    hooks:
+      - id: ruff
+        args: [--fix]
+
+  - repo: local
+    hooks:
+      - id: no-hardcoded-secrets
+        name: Detect hardcoded secrets
+        language: pygrep
+        entry: '(sk_test_\w|sk_live_\w|sk-ant-api\w|AKIA[0-9A-Z]{16})'
+        types: [text]
+        exclude: '(\.env\.example|\.pre-commit-config\.yaml|CONTRIBUTING\.md)$'

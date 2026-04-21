@@ -2,15 +2,19 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from genesys.engine.config import MAX_INGEST_FILE_MB
 from genesys.models.edge import MemoryEdge
 from genesys.models.enums import EdgeType, MemoryStatus
 from genesys.models.node import MemoryNode
 from genesys.storage.base import EmbeddingProvider, EventBusProvider, GraphStorageProvider
+
+logger = logging.getLogger("genesys.ingestion")
 
 
 async def ingest_claude_export(
@@ -32,6 +36,11 @@ async def ingest_claude_export(
     Returns:
         Dict with counts of memories and edges created.
     """
+    path = Path(source)
+    max_bytes = MAX_INGEST_FILE_MB * 1024 * 1024
+    if path.exists() and path.stat().st_size > max_bytes:
+        raise ValueError(f"File exceeds {MAX_INGEST_FILE_MB}MB limit: {path.stat().st_size / 1024 / 1024:.1f}MB")
+
     conversations = _load_conversations(source)
 
     memories_created = 0
@@ -104,6 +113,9 @@ def _load_conversations(source: str | Path) -> list[dict]:
         with zipfile.ZipFile(path) as zf:
             conversations = []
             for name in zf.namelist():
+                if ".." in name or name.startswith("/"):
+                    logger.warning("Skipping suspicious zip entry: %s", name)
+                    continue
                 if name.endswith(".json"):
                     with zf.open(name) as f:
                         data = json.loads(f.read())
