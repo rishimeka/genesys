@@ -16,23 +16,23 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Add project root to path
+# Add project root to path (must precede benchmarks imports)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-import anthropic
-import numpy as np
+import anthropic  # noqa: E402
 
-from benchmarks.baseline_flat import FlatVectorMemory
-from genesys.engine.scoring import cosine_similarity
-from genesys.mcp.tools import MCPToolHandler
-from genesys.models.edge import MemoryEdge
-from genesys.models.enums import CAUSAL_EDGE_TYPES, EdgeType, MemoryStatus
-from genesys.models.node import MemoryNode
-from genesys.retrieval.embedding import OpenAIEmbeddingProvider
-from genesys.storage.base import EmbeddingProvider
+from benchmarks.baseline_flat import FlatVectorMemory  # noqa: E402
+from genesys_memory.engine.scoring import cosine_similarity  # noqa: E402
+from genesys_memory.mcp.tools import MCPToolHandler  # noqa: E402
+from genesys_memory.models.edge import MemoryEdge  # noqa: E402
+from genesys_memory.models.enums import CAUSAL_EDGE_TYPES, EdgeType, MemoryStatus  # noqa: E402
+from genesys_memory.models.node import MemoryNode  # noqa: E402
+from genesys_memory.retrieval.embedding import OpenAIEmbeddingProvider  # noqa: E402
+from genesys_memory.storage.base import LLMProvider  # noqa: E402
 
 SCENARIOS_DIR = Path(__file__).parent / "scenarios"
 
@@ -369,7 +369,7 @@ class BenchmarkRunner:
         try:
             node = await graph.get_node(node_id)
             if node:
-                from genesys.core_memory.promoter import evaluate_core_promotion, promote_to_core
+                from genesys_memory.core_memory.promoter import evaluate_core_promotion, promote_to_core
                 should_promote, reason = await evaluate_core_promotion(node, graph)
                 if should_promote and reason:
                     await promote_to_core(node_id, reason, graph)
@@ -389,7 +389,7 @@ class BenchmarkRunner:
 
         for node in list(graph.nodes.values()) if hasattr(graph, 'nodes') else []:
             try:
-                from genesys.engine.scoring import calculate_decay_score
+                from genesys_memory.engine.scoring import calculate_decay_score
                 score = await calculate_decay_score(
                     node, None, None, graph, embeddings, max_cw
                 )
@@ -398,7 +398,7 @@ class BenchmarkRunner:
                 pass
 
         # Now run the actual forgetting sweep
-        from genesys.engine.forgetting import sweep_for_forgetting
+        from genesys_memory.engine.forgetting import sweep_for_forgetting
         pruned = await sweep_for_forgetting(graph)
         return len(pruned)
 
@@ -428,7 +428,7 @@ class BenchmarkRunner:
         scored_results = []
         for node, vec_sim in candidates:
             try:
-                from genesys.engine.scoring import calculate_decay_score
+                from genesys_memory.engine.scoring import calculate_decay_score
                 score = await calculate_decay_score(
                     node, query_embedding, query_entities, graph, embeddings, max_cw
                 )
@@ -508,7 +508,7 @@ class BenchmarkRunner:
         await self.ingest(scenario)
 
         # Run forgetting sweep to prune irrelevant orphan memories
-        print(f"  Phase 2: Running forgetting sweep...")
+        print("  Phase 2: Running forgetting sweep...")
         pruned_count = await self._run_forgetting_sweep()
         graph = self.genesys.graph
         remaining = len(graph.nodes) if hasattr(graph, 'nodes') else 0
@@ -665,7 +665,7 @@ async def main() -> None:
 
     # Setup providers
     from unittest.mock import AsyncMock
-    from genesys.engine.llm_provider import AnthropicLLMProvider
+    from genesys_memory.engine.llm_provider import AnthropicLLMProvider
 
     embeddings = OpenAIEmbeddingProvider(api_key=os.environ["OPENAI_API_KEY"])
     llm = AnthropicLLMProvider(api_key=os.environ["ANTHROPIC_API_KEY"])

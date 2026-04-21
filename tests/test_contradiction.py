@@ -1,14 +1,13 @@
 """Tests for contradiction detection."""
 from __future__ import annotations
 
-import uuid
 from unittest.mock import AsyncMock
 
 import pytest
 
-from genesys.engine.contradiction import detect_contradictions
-from genesys.models.enums import EdgeType, MemoryStatus
-from genesys.models.node import MemoryNode
+from genesys_memory.engine.contradiction import detect_contradictions
+from genesys_memory.models.enums import MemoryStatus
+from genesys_memory.models.node import MemoryNode
 
 
 def _make_node(**kwargs) -> MemoryNode:

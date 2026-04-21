@@ -1,21 +1,20 @@
 """Tests for the three-force multiplicative scoring engine."""
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import numpy as np
 import pytest
 
-from genesys.engine.scoring import (
+from genesys_memory.engine.scoring import (
     base_level_activation,
     calculate_decay_score,
     calculate_reactivation_durability,
     cosine_similarity,
 )
-from genesys.models.enums import MemoryStatus, ReactivationPattern
-from genesys.models.node import MemoryNode
+from genesys_memory.models.enums import ReactivationPattern
+from genesys_memory.models.node import MemoryNode
 
 
 def _make_node(**kwargs) -> MemoryNode:

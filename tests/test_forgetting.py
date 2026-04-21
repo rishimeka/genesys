@@ -1,15 +1,13 @@
 """Tests for active forgetting — safety-critical conjunctive criteria."""
 from __future__ import annotations
 
-import uuid
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 
 import pytest
 
-from genesys.engine.forgetting import sweep_for_forgetting
-from genesys.models.enums import MemoryStatus
-from genesys.models.node import MemoryNode
+from genesys_memory.engine.forgetting import sweep_for_forgetting
+from genesys_memory.models.enums import MemoryStatus
+from genesys_memory.models.node import MemoryNode
 
 
 def _make_orphan_node(**kwargs) -> MemoryNode:
