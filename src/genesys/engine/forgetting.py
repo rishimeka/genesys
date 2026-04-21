@@ -1,6 +1,7 @@
 """Active forgetting — prune memories meeting ALL conjunctive criteria."""
 from __future__ import annotations
 
+from genesys.engine import config
 from genesys.models.enums import MemoryStatus
 from genesys.storage.base import GraphStorageProvider
 
@@ -20,7 +21,7 @@ async def sweep_for_forgetting(graph: GraphStorageProvider) -> list[str]:
 
     for node in orphans:
         if (
-            node.decay_score < 0.01
+            node.decay_score < config.FORGETTING_THRESHOLD
             and not node.pinned
             and node.status != MemoryStatus.CORE
         ):

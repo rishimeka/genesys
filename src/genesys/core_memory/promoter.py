@@ -8,14 +8,11 @@ from __future__ import annotations
 
 import math
 
+from genesys.engine import config
 from genesys.engine.scoring import base_level_activation
 from genesys.models.enums import MemoryStatus
 from genesys.models.node import MemoryNode
 from genesys.storage.base import GraphStorageProvider
-
-DEFAULT_AUTO_PROMOTE_CATEGORIES = ["professional", "educational", "family", "location"]
-
-CORE_THRESHOLD = 0.55
 
 
 async def consolidation_score(
@@ -36,7 +33,7 @@ async def consolidation_score(
     total_nodes = stats.get("total_nodes", stats.get("nodes", 1))
     total_edges = stats.get("total_edges", stats.get("edges", 0))
     avg_degree = (2 * total_edges / max(total_nodes, 1))  # each edge touches 2 nodes
-    hub_score = min(degree / max(avg_degree, 1), 3.0) / 3.0  # normalize, cap at 3x avg
+    hub_score = min(degree / max(avg_degree, 1), config.HUB_SCORE_CAP) / config.HUB_SCORE_CAP
 
     # Schema match: fraction of neighbors that are themselves well-connected
     schema_match = 0.0
@@ -44,7 +41,7 @@ async def consolidation_score(
         edges = await graph.get_edges(str(node.id), "both")
         well_connected = 0
         checked = 0
-        for edge in edges[:10]:  # cap to avoid O(n²) on hub nodes
+        for edge in edges[:config.SCHEMA_NEIGHBOR_CAP]:
             neighbor_id = str(edge.target_id) if str(edge.source_id) == str(node.id) else str(edge.source_id)
             n_degree = await graph.get_degree(neighbor_id)
             if n_degree > avg_degree:
@@ -54,13 +51,13 @@ async def consolidation_score(
             schema_match = well_connected / checked
 
     # Stability as proxy for importance (grows with retrieval)
-    stability_norm = min(node.stability / 3.0, 1.0)
+    stability_norm = min(node.stability / config.STABILITY_CAP, 1.0)
 
     return (
-        0.4 * activation_norm +
-        0.3 * hub_score +
-        0.2 * schema_match +
-        0.1 * stability_norm
+        config.CORE_ACTIVATION_WEIGHT * activation_norm +
+        config.CORE_HUB_WEIGHT * hub_score +
+        config.CORE_SCHEMA_WEIGHT * schema_match +
+        config.CORE_STABILITY_WEIGHT * stability_norm
     )
 
 
@@ -73,12 +70,12 @@ async def evaluate_core_promotion(
         return False, None
 
     # Fast path: category-based auto-promote
-    if node.category in DEFAULT_AUTO_PROMOTE_CATEGORIES:
+    if node.category in config.AUTO_PROMOTE_CATEGORIES:
         return True, f"category_default:{node.category}"
 
     # Composite consolidation score
     score = await consolidation_score(node, graph)
-    if score >= CORE_THRESHOLD:
+    if score >= config.CORE_THRESHOLD:
         return True, f"consolidation_score:{score:.3f}"
 
     return False, None

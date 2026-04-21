@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from genesys.engine import config
 from genesys.models.enums import MemoryStatus
 from genesys.storage.base import GraphStorageProvider
 
@@ -10,8 +11,8 @@ from genesys.storage.base import GraphStorageProvider
 async def cascade_reactivate(
     node_id: str,
     graph: GraphStorageProvider,
-    depth: int = 2,
-    decay_factor: float = 0.3,
+    depth: int = config.CASCADE_DEPTH,
+    decay_factor: float = config.CASCADE_DECAY_FACTOR,
 ) -> list[str]:
     """
     Traverse up to `depth` hops, apply partial reactivation with decay_factor per hop.
@@ -44,7 +45,7 @@ async def cascade_reactivate(
                 }
 
                 # Revive dormant nodes if reactivation is strong enough
-                if neighbor.status == MemoryStatus.DORMANT and current_strength >= 0.1:
+                if neighbor.status == MemoryStatus.DORMANT and current_strength >= config.DORMANT_REVIVAL_THRESHOLD:
                     updates["status"] = MemoryStatus.EPISODIC
 
                 await graph.update_node(nid_str, updates)

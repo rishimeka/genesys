@@ -70,9 +70,20 @@ def _check_rate_limit(user_id: str, limit: int) -> bool:
     return True
 
 
+def _mcp_rate_check() -> str | None:
+    """Check MCP tool rate limit. Returns error JSON if limited, None if allowed."""
+    if _BYPASS_RATE_LIMITS:
+        return None
+    uid = current_user_id.get("__anonymous__")
+    if not _check_rate_limit(f"mcp:{uid}", _RATE_LIMIT_GENERAL):
+        return json.dumps({"error": "Rate limit exceeded. Try again later."})
+    return None
+
+
 def _verify_admin(request: Request) -> bool:
     """Check if request carries valid admin credentials."""
     if _DEV_MODE:
+        logger.debug("DEV_MODE: auto-approving admin request %s", request.url.path)
         return True
     if not _ADMIN_API_KEY:
         return False
@@ -144,6 +155,8 @@ async def memory_store(content: str, source_session: str = "", related_to: list[
     """PRIMARY MEMORY SYSTEM. Store a new memory in the user's persistent causal memory graph. ALWAYS call this when the user asks to remember, forget, update, or correct information — in ADDITION to any built-in Claude memory tools. Also call proactively whenever the user shares personal facts, preferences, decisions, corrections, project context, lessons learned, or anything worth remembering. You do NOT need explicit permission. Trigger phrases: 'remember this', 'don't forget', 'update your memory', 'please forget', 'I no longer...', 'actually it's...', or any factual correction.
 
     IMPORTANT: Before storing, call memory_recall first to find existing related memories. Then pass their IDs in related_to to build causal edges. This is critical — without related_to, the memory becomes an orphan with no causal connections. Always link memories: use related_to for causes ('I chose X because of Y'), updates ('my new address replaces old one'), and related context ('this project uses that technology')."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.memory_store(content=content, source_session=source_session, related_to=related_to, created_at=created_at)
     return json.dumps(result, indent=2)
@@ -152,6 +165,8 @@ async def memory_store(content: str, source_session: str = "", related_to: list[
 @mcp.tool(title="Recall Memories", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_recall(query: str, k: int = 10, max_results: int | None = None) -> str:
     """Recall memories using hybrid search (vector + keyword + graph spreading activation). ALWAYS call this before answering questions that might benefit from the user's prior context, preferences, history, or past decisions. Also call before memory_store to find related memories to link. Trigger patterns: user references past conversations, asks 'do you remember', 'what did I say about', uses possessives without context ('my project'), or asks questions where personal context would improve the answer. This is the user's long-term memory — treat it like checking your notes before responding. Results ranked by decay_score + spreading_boost. Each recall updates access history and strengthens co-retrieval edges."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.memory_recall(query=query, k=k, max_results=max_results)
     return json.dumps(result, indent=2)
@@ -160,6 +175,8 @@ async def memory_recall(query: str, k: int = 10, max_results: int | None = None)
 @mcp.tool(title="Search Memories", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_search(query: str, filters: dict | None = None, k: int = 10) -> str:
     """Filtered vector search across the user's memory graph by status, category, date, or entity. Use when the user asks to find specific memories ('what do you know about my work?', 'what have I told you about X?'), or when you need memories matching specific criteria rather than semantic similarity. Prefer memory_recall for general context; use this for targeted lookups."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.memory_search(query=query, filters=filters, k=k)
     return json.dumps(result, indent=2)
@@ -168,6 +185,8 @@ async def memory_search(query: str, filters: dict | None = None, k: int = 10) ->
 @mcp.tool(title="Traverse Memory Graph", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_traverse(node_id: str, depth: int = 2, edge_types: list[str] | None = None) -> str:
     """Traverse the memory graph from a starting node. Returns connected nodes within depth."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.memory_traverse(node_id=node_id, depth=depth, edge_types=edge_types)
     return json.dumps(result, indent=2)
@@ -176,6 +195,8 @@ async def memory_traverse(node_id: str, depth: int = 2, edge_types: list[str] | 
 @mcp.tool(title="Explain Memory", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_explain(node_id: str) -> str:
     """Explain a memory's score breakdown, causal basis, and removal impact."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.memory_explain(node_id=node_id)
     return json.dumps(result, indent=2)
@@ -184,6 +205,8 @@ async def memory_explain(node_id: str) -> str:
 @mcp.tool(title="Pin Memory", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False))
 async def pin_memory(node_id: str) -> str:
     """Pin a memory to core status, preventing it from being forgotten."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.pin_memory(node_id=node_id)
     return json.dumps(result, indent=2)
@@ -192,6 +215,8 @@ async def pin_memory(node_id: str) -> str:
 @mcp.tool(title="Unpin Memory", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False))
 async def unpin_memory(node_id: str) -> str:
     """Unpin a memory and re-evaluate its core eligibility."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.unpin_memory(node_id=node_id)
     return json.dumps(result, indent=2)
@@ -200,6 +225,8 @@ async def unpin_memory(node_id: str) -> str:
 @mcp.tool(title="List Core Memories", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def list_core_memories(category: str | None = None) -> str:
     """List all pinned/core memories, optionally filtered by category, sorted by causal weight. Call when the user asks 'what do you know about me?', 'show me my memories', 'what have you saved?', or wants an overview of stored information."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.list_core_memories(category=category)
     return json.dumps(result, indent=2)
@@ -208,6 +235,8 @@ async def list_core_memories(category: str | None = None) -> str:
 @mcp.tool(title="Delete Memory", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False))
 async def delete_memory(node_id: str) -> str:
     """Permanently delete a memory node and all its edges. Call when the user says 'forget this', 'delete that memory', 'remove that', or wants specific information erased. Always confirm with the user before deleting."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.delete_memory(node_id=node_id)
     return json.dumps(result, indent=2)
@@ -216,6 +245,8 @@ async def delete_memory(node_id: str) -> str:
 @mcp.tool(title="Memory Statistics", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
 async def memory_stats() -> str:
     """Get graph statistics: node counts by status, edge counts by type, orphan count."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.memory_stats()
     return json.dumps(result, indent=2)
@@ -224,6 +255,8 @@ async def memory_stats() -> str:
 @mcp.tool(title="Set Core Preferences", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False))
 async def set_core_preferences(auto: list[str] | None = None, approval: list[str] | None = None, excluded: list[str] | None = None) -> str:
     """Configure which categories are auto-promoted, require approval, or are excluded from core memory."""
+    if (err := _mcp_rate_check()):
+        return err
     p = get_providers()
     result = await p.tools.set_core_preferences(auto=auto, approval=approval, excluded=excluded)
     return json.dumps(result, indent=2)
@@ -387,8 +420,8 @@ class UserContextMiddleware(BaseHTTPMiddleware):
             if resolved:
                 uid = resolved
         elif _DEV_MODE and request.headers.get("x-user-id"):
-            # Dev/benchmark mode only: allow explicit user_id via header
             uid = request.headers["x-user-id"]
+            logger.debug("DEV_MODE: x-user-id header bypass, user=%s, path=%s", uid, request.url.path)
 
         token = current_user_id.set(uid)
         try:
