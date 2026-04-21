@@ -16,7 +16,7 @@ class MCPToolHandler:
     def __init__(
         self,
         graph: GraphStorageProvider,
-        embeddings: EmbeddingProvider,
+        embeddings: EmbeddingProvider | None,
         cache: CacheProvider,
         event_bus: EventBusProvider | None = None,
         on_change: Callable | None = None,

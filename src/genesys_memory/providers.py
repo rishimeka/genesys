@@ -22,7 +22,7 @@ load_dotenv()
 class Providers:
     graph: GraphStorageProvider
     cache: CacheProvider
-    embeddings: EmbeddingProvider
+    embeddings: EmbeddingProvider | None
     llm: object | None
     event_bus: EventBusProvider | None
     tools: MCPToolHandler
@@ -32,15 +32,25 @@ class Providers:
 _instance: Providers | None = None
 
 
-def _make_embedder() -> EmbeddingProvider:
-    """Create embedding provider based on GENESYS_EMBEDDER env var."""
+def _make_embedder() -> EmbeddingProvider | None:
+    """Create embedding provider based on GENESYS_EMBEDDER env var.
+
+    Falls back gracefully when optional dependencies are missing.
+    """
     embedder = os.getenv("GENESYS_EMBEDDER", "openai")
     if embedder == "local":
-        from genesys_memory.retrieval.embedding import LocalEmbeddingProvider
-        return LocalEmbeddingProvider()
+        try:
+            from genesys_memory.retrieval.embedding import LocalEmbeddingProvider
+            return LocalEmbeddingProvider()
+        except ImportError:
+            pass
     else:
-        from genesys_memory.retrieval.embedding import OpenAIEmbeddingProvider
-        return OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""))
+        try:
+            from genesys_memory.retrieval.embedding import OpenAIEmbeddingProvider
+            return OpenAIEmbeddingProvider(api_key=os.getenv("OPENAI_API_KEY", ""))
+        except ImportError:
+            pass
+    return None
 
 
 def get_providers() -> Providers:
