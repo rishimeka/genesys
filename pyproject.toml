@@ -1,65 +1,37 @@
 [project]
 name = "genesys-memory"
-dynamic = ["version"]
+version = "0.1.0"
 description = "The intelligence layer for AI memory — scoring, causal inference, lifecycle management, and active forgetting"
 authors = [{name = "Genesys Contributors"}]
-readme = "README.md"
-license = {text = "Apache-2.0"}
+license = {text = "AGPL-3.0-or-later"}
 requires-python = ">=3.11"
 keywords = ["memory", "ai", "mcp", "causal-graph", "agents"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    # MCP & API
-    "mcp>=1.0.0",
-    "fastapi>=0.110.0",
-    "uvicorn[standard]>=0.29.0",
     "pydantic>=2.7.0",
-
-    # AI / ML
-    "openai>=1.30.0",
-    "anthropic>=0.30.0",
     "numpy>=1.26.0",
-
-    # SSE
-    "sse-starlette>=2.0.0",
-
-    # Utilities
+    "mcp>=1.0.0",
     "python-dotenv>=1.0.0",
-
-    "httpx>=0.27.0",
-
-    # Auth
-    "pyjwt>=2.8.0",
-    "cryptography>=42.0.0",
 ]
 
 [project.optional-dependencies]
-obsidian = [
-    "aiosqlite>=0.19.0",
-    "watchdog>=4.0.0",
-    "pyyaml>=6.0.0",
+openai = [
+    "openai>=1.30.0",
+]
+anthropic = [
+    "anthropic>=0.30.0",
 ]
 local = [
     "sentence-transformers>=2.2.0",
 ]
-postgres = [
-    "asyncpg>=0.29.0",
-    "pgvector>=0.3.0",
-    "alembic>=1.13.0",
-    "redis>=5.0.0",
-]
-mongo = [
-    "motor>=3.3.0",
-]
-falkordb = [
-    "falkordb>=1.0.0",
+redis = [
     "redis>=5.0.0",
 ]
 dev = [
@@ -87,15 +59,9 @@ line-length = 120
 python_version = "3.11"
 strict = true
 
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.build.hooks.vcs]
-version-file = "src/genesys/_version.py"
-
 [tool.hatch.build.targets.wheel]
-packages = ["src/genesys"]
+packages = ["src/genesys_memory"]
 
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"

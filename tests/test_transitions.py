@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from genesys.engine.transitions import evaluate_transitions
-from genesys.models.enums import MemoryStatus, ReactivationPattern
-from genesys.models.node import MemoryNode
+from genesys_memory.engine.transitions import evaluate_transitions
+from genesys_memory.models.enums import MemoryStatus
+from genesys_memory.models.node import MemoryNode
 
 
 def _make_node(**kwargs) -> MemoryNode:
@@ -37,7 +37,7 @@ class TestTransitions:
         emb = AsyncMock()
         llm = AsyncMock()
 
-        with patch("genesys.engine.transitions.calculate_decay_score", return_value=0.3):
+        with patch("genesys_memory.engine.transitions.calculate_decay_score", return_value=0.3):
             transitions = await evaluate_transitions(graph, emb, llm)
 
         assert len(transitions) == 1
@@ -52,7 +52,7 @@ class TestTransitions:
         graph.get_nodes_by_status = AsyncMock(side_effect=lambda s, **kw: [node] if s == MemoryStatus.ACTIVE else [])
         graph.update_node = AsyncMock()
 
-        with patch("genesys.engine.transitions.calculate_decay_score", return_value=0.3):
+        with patch("genesys_memory.engine.transitions.calculate_decay_score", return_value=0.3):
             transitions = await evaluate_transitions(graph, AsyncMock(), AsyncMock())
 
         assert len(transitions) == 0
@@ -70,7 +70,7 @@ class TestTransitions:
         graph.get_nodes_by_status = AsyncMock(side_effect=lambda s, **kw: [node] if s == MemoryStatus.EPISODIC else [])
         graph.update_node = AsyncMock()
 
-        with patch("genesys.engine.transitions.calculate_decay_score", return_value=0.05):
+        with patch("genesys_memory.engine.transitions.calculate_decay_score", return_value=0.05):
             transitions = await evaluate_transitions(graph, AsyncMock(), AsyncMock())
 
         assert len(transitions) == 1
@@ -89,7 +89,7 @@ class TestTransitions:
         graph.get_nodes_by_status = AsyncMock(side_effect=lambda s, **kw: [node] if s == MemoryStatus.EPISODIC else [])
         graph.update_node = AsyncMock()
 
-        with patch("genesys.engine.transitions.calculate_decay_score", return_value=0.05):
+        with patch("genesys_memory.engine.transitions.calculate_decay_score", return_value=0.05):
             transitions = await evaluate_transitions(graph, AsyncMock(), AsyncMock())
 
         assert len(transitions) == 0

@@ -1,15 +1,13 @@
 """Tests for Phase 3 MCP tools."""
 from __future__ import annotations
 
-import uuid
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
-from genesys.mcp.tools import MCPToolHandler
-from genesys.models.edge import MemoryEdge
-from genesys.models.enums import EdgeType, MemoryStatus, ReactivationPattern
-from genesys.models.node import MemoryNode
+from genesys_memory.mcp.tools import MCPToolHandler
+from genesys_memory.models.enums import MemoryStatus, ReactivationPattern
+from genesys_memory.models.node import MemoryNode
 
 
 def _make_node(**kwargs) -> MemoryNode:
@@ -34,7 +32,7 @@ class TestAllToolsRegistered:
     async def test_all_tools_registered(self):
         """Server should list 11 tools."""
         # Import and check tool listing
-        from genesys.server import list_tools
+        from genesys_memory.server import list_tools
         tool_list = await list_tools()
         assert len(tool_list) == 11
         names = {t.name for t in tool_list}
