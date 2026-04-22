@@ -40,7 +40,7 @@ async def detect_contradictions(
 
         content_a = new_node.content_full or new_node.content_summary
         content_b = candidate_node.content_full or candidate_node.content_summary
-        is_contradiction, confidence = await llm.detect_contradiction(content_a, content_b)
+        is_contradiction, confidence, reason = await llm.detect_contradiction(content_a, content_b)
 
         if is_contradiction and confidence > 0.7:
             # Create CONTRADICTS edge
@@ -49,7 +49,7 @@ async def detect_contradictions(
                 target_id=candidate_node.id,
                 type=EdgeType.CONTRADICTS,
                 weight=confidence,
-                metadata={"confidence": confidence},
+                metadata={"confidence": confidence, "reason": reason},
             )
             await graph.create_edge(edge)
             contradictions.append((str(candidate_node.id), confidence))

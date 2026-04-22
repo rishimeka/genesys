@@ -6,7 +6,7 @@ from typing import Any
 
 from genesys_memory.engine import config
 from genesys_memory.engine.scoring import calculate_decay_score
-from genesys_memory.models.enums import MemoryStatus
+from genesys_memory.models.enums import MemoryStatus, Visibility
 from genesys_memory.storage.base import EmbeddingProvider, GraphStorageProvider, LLMProvider
 
 
@@ -25,6 +25,8 @@ async def evaluate_transitions(
     # Tagged → Active: promote if node has edges (consolidation signal)
     tagged_nodes = await graph.get_nodes_by_status(MemoryStatus.TAGGED)
     for node in tagged_nodes:
+        if node.visibility == Visibility.ORG:
+            continue
         if not await graph.is_orphan(str(node.id)):
             await graph.update_node(str(node.id), {"status": MemoryStatus.ACTIVE})
             transitions.append({
@@ -51,6 +53,8 @@ async def evaluate_transitions(
 
     for node in active_nodes + episodic_nodes + semantic_nodes:
         if node.status == MemoryStatus.CORE:
+            continue
+        if node.visibility == Visibility.ORG:
             continue
 
         score = await calculate_decay_score(

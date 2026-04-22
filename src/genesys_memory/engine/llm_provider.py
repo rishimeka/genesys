@@ -3,13 +3,12 @@ from __future__ import annotations
 
 import json
 
-import anthropic
-
 from genesys_memory.models.enums import EdgeType
 
 
 class AnthropicLLMProvider:
     def __init__(self, api_key: str, model: str = "claude-haiku-4-5-20251001"):
+        import anthropic
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
         self._model = model
 
@@ -57,7 +56,7 @@ class AnthropicLLMProvider:
             ) else None)
         return raw
 
-    async def detect_contradiction(self, memory_a: str, memory_b: str) -> tuple[bool, float]:
+    async def detect_contradiction(self, memory_a: str, memory_b: str) -> tuple[bool, float, str | None]:
         prompt = (
             "Do these two memories contradict each other? "
             "A contradiction means they cannot both be true simultaneously.\n\n"
@@ -67,13 +66,17 @@ class AnthropicLLMProvider:
         raw = await self._ask(prompt, max_tokens=256)
         try:
             data = json.loads(raw)
-            return bool(data.get("contradicts", False)), float(data.get("confidence", 0.0))
+            return (
+                bool(data.get("contradicts", False)),
+                float(data.get("confidence", 0.0)),
+                data.get("reason"),
+            )
         except (json.JSONDecodeError, ValueError):
-            return False, 0.0
+            return False, 0.0, None
 
     async def infer_causal_edges(
         self, new_memory: str, existing_memories: list[tuple[str, str]]
-    ) -> list[tuple[str, EdgeType, float]]:
+    ) -> list[tuple[str, EdgeType, float, str | None]]:
         if not existing_memories:
             return []
         mem_lines = "\n".join(f"ID: {mid} | Content: {content}" for mid, content in existing_memories)
@@ -83,14 +86,15 @@ class AnthropicLLMProvider:
             "For each causal relationship found, specify:\n"
             "- target_id: the ID of the existing memory\n"
             '- edge_type: one of "caused_by", "supports", "derived_from"\n'
-            "- confidence: 0.0 to 1.0\n\n"
+            "- confidence: 0.0 to 1.0\n"
+            "- reason: brief explanation of why this relationship exists\n\n"
             "Only include relationships with confidence > 0.6.\n"
             "Respond with ONLY a JSON array of objects, no other text."
         )
         raw = await self._ask(prompt, max_tokens=1024)
         try:
             data = json.loads(raw)
-            results = []
+            results: list[tuple[str, EdgeType, float, str | None]] = []
             for item in data:
                 edge_type_str = item.get("edge_type", "")
                 try:
@@ -99,7 +103,7 @@ class AnthropicLLMProvider:
                     continue
                 confidence = float(item.get("confidence", 0.0))
                 if confidence > 0.6:
-                    results.append((item["target_id"], edge_type, confidence))
+                    results.append((item["target_id"], edge_type, confidence, item.get("reason")))
             return results
         except (json.JSONDecodeError, KeyError):
             return []

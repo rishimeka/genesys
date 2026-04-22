@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
-from genesys_memory.models.enums import MemoryStatus, ReactivationPattern
+from genesys_memory.models.enums import MemoryStatus, ReactivationPattern, Visibility
 
 
 class MemoryNode(BaseModel):
@@ -45,3 +45,8 @@ class MemoryNode(BaseModel):
 
     # Reactivation history
     reactivation_timestamps: list[datetime] = Field(default_factory=list)
+
+    # Organization scoping
+    org_id: str | None = None
+    visibility: Visibility = Visibility.PRIVATE
+    original_user_id: str | None = None

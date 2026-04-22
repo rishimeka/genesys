@@ -23,6 +23,15 @@ class EdgeType(str, Enum):
 
 CAUSAL_EDGE_TYPES = {EdgeType.CAUSED_BY, EdgeType.SUPPORTS, EdgeType.DERIVED_FROM}
 
+SUPPORTIVE_EDGE_TYPES = {EdgeType.CAUSED_BY, EdgeType.SUPPORTS, EdgeType.DERIVED_FROM, EdgeType.RELATED_TO}
+
+NEGATIVE_EDGE_TYPES = {EdgeType.CONTRADICTS, EdgeType.SUPERSEDES}
+
+
+class Visibility(str, Enum):
+    PRIVATE = "private"
+    ORG = "org"
+
 
 class ReactivationPattern(str, Enum):
     BURST = "burst"

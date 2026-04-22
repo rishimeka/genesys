@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from genesys_memory.engine import config
-from genesys_memory.models.enums import MemoryStatus
+from genesys_memory.models.enums import MemoryStatus, Visibility
 from genesys_memory.storage.base import GraphStorageProvider
 
 
@@ -10,9 +10,10 @@ async def sweep_for_forgetting(graph: GraphStorageProvider) -> list[str]:
     """
     Prune memories meeting ALL criteria:
     1. decay_score < 0.01
-    2. is_orphan (zero edges)
+    2. is_orphan (zero supportive edges)
     3. NOT pinned
     4. status != CORE
+    5. visibility != ORG (org nodes are exempt from per-user forgetting)
 
     Returns list of pruned node IDs.
     """
@@ -20,6 +21,8 @@ async def sweep_for_forgetting(graph: GraphStorageProvider) -> list[str]:
     orphans = await graph.get_orphans()
 
     for node in orphans:
+        if node.visibility == Visibility.ORG:
+            continue
         if (
             node.decay_score < config.FORGETTING_THRESHOLD
             and not node.pinned
