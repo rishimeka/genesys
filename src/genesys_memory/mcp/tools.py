@@ -8,7 +8,8 @@ from typing import Any
 from genesys_memory.core_memory.preferences import CoreMemoryPreferences
 from genesys_memory.core_memory.promoter import evaluate_core_promotion
 from genesys_memory.models.edge import MemoryEdge
-from genesys_memory.models.enums import EdgeType, MemoryStatus
+from genesys_memory.context import current_org_ids
+from genesys_memory.models.enums import EdgeType, MemoryStatus, Visibility
 from genesys_memory.models.node import MemoryNode
 from genesys_memory.storage.base import CacheProvider, EmbeddingProvider, EventBusProvider, GraphStorageProvider
 
@@ -39,12 +40,20 @@ class MCPToolHandler:
         source_session: str = "",
         related_to: list[str] | None = None,
         created_at: str | None = None,
+        visibility: str = "private",
+        org_id: str | None = None,
     ) -> dict[str, Any]:
         """Store a new memory. Returns the node ID.
 
         Args:
             created_at: Optional ISO 8601 timestamp. Defaults to now.
+            visibility: "private" or "org". Defaults to "private".
+            org_id: Required when visibility is "org".
         """
+        vis = Visibility(visibility)
+        if vis == Visibility.ORG and not org_id:
+            return {"error": "org_id required when visibility is 'org'"}
+
         embedding = await self.embeddings.embed(content) if self.embeddings else []
         summary = content[:200]
 
@@ -63,6 +72,8 @@ class MCPToolHandler:
             causal_weight=0,
             source_agent="claude",
             source_session=source_session,
+            visibility=vis,
+            org_id=org_id,
         )
 
         node_id = await self.graph.create_node(node)
@@ -81,12 +92,17 @@ class MCPToolHandler:
         # Auto-link to semantically similar existing memories
         if embedding:
             try:
-                similar = await self.graph.vector_search(embedding, k=4)
+                org_ids = current_org_ids.get([])
+                similar = await self.graph.vector_search(embedding, k=4, org_ids=org_ids)
                 for other_node, score in similar:
                     if str(other_node.id) == node_id:
                         continue
                     if score < 0.3:
                         continue
+                    # Org boundary rule: org nodes only link to same-org nodes
+                    if vis == Visibility.ORG:
+                        if other_node.visibility != Visibility.ORG or other_node.org_id != org_id:
+                            continue
                     already = await self.graph.edge_exists(node_id, str(other_node.id), EdgeType.RELATED_TO)
                     if not already:
                         edge = MemoryEdge(
@@ -111,7 +127,7 @@ class MCPToolHandler:
             })
 
         await self._notify("memory.created", {"node_id": node_id, "content": content[:200]})
-        return {"node_id": node_id, "status": "stored"}
+        return {"node_id": node_id, "status": "stored", "visibility": vis.value}
 
     async def memory_recall(
         self,
@@ -133,8 +149,9 @@ class MCPToolHandler:
         }
         terms = [w for w in query.lower().split() if w.strip("?.,!'\"") not in _stopwords and len(w) > 2]
 
+        org_ids = current_org_ids.get([])
         # Run embedding + all keyword searches concurrently
-        kw_coros = [self.graph.keyword_search(t.strip("?.,!'\""), k=k) for t in terms[:5]]
+        kw_coros = [self.graph.keyword_search(t.strip("?.,!'\""), k=k, org_ids=org_ids) for t in terms[:5]]
         if not self.embeddings:
             return {"query": query, "results": [], "count": 0}
         embed_and_kw: list[Any] = await asyncio.gather(self.embeddings.embed(query), *kw_coros)
@@ -142,7 +159,7 @@ class MCPToolHandler:
         kw_results_per_term: list[list[MemoryNode]] = embed_and_kw[1:]
 
         # 1. Vector search (needs embedding)
-        vector_results = await self.graph.vector_search(embedding, k=k)
+        vector_results = await self.graph.vector_search(embedding, k=k, org_ids=org_ids)
 
         # 2. Collect keyword hits
         kw_node_ids: set[str] = set()
@@ -193,6 +210,18 @@ class MCPToolHandler:
                 mem["_rank_score"] = 0.0
                 memories.append(mem)
 
+        # Deprioritize superseded nodes (replaced by newer information)
+        SUPERSEDED_DECAY = 0.3
+        for mem in memories:
+            mem_id = mem.get("id")
+            if mem_id:
+                incoming = await self.graph.get_edges(mem_id, "incoming", EdgeType.SUPERSEDES)
+                if incoming:
+                    mem["_rank_score"] *= SUPERSEDED_DECAY
+                    mem["superseded_by"] = str(
+                        incoming[0].source_id if str(incoming[0].target_id) == mem_id else incoming[0].target_id
+                    )
+
         memories.sort(key=lambda m: m["_rank_score"], reverse=True)
         for mem in memories:
             mem.pop("_rank_score", None)
@@ -231,9 +260,10 @@ class MCPToolHandler:
         """Format a memory node with causal chain info."""
         causal_basis = []
         causal_chain = []
+        org_ids = current_org_ids.get([])
         try:
-            upstream = await self.graph.get_causal_chain(str(node.id), "upstream")
-            downstream = await self.graph.get_causal_chain(str(node.id), "downstream")
+            upstream = await self.graph.get_causal_chain(str(node.id), "upstream", org_ids=org_ids)
+            downstream = await self.graph.get_causal_chain(str(node.id), "downstream", org_ids=org_ids)
             # Causal basis: both upstream causes and downstream effects
             seen = set()
             for n in upstream[:5]:
@@ -318,7 +348,8 @@ class MCPToolHandler:
     ) -> dict[str, Any]:
         """Subgraph traversal returning connected nodes."""
         parsed_types = [EdgeType(t) for t in edge_types] if edge_types else None
-        nodes = await self.graph.traverse(node_id, depth, parsed_types)
+        org_ids = current_org_ids.get([])
+        nodes = await self.graph.traverse(node_id, depth, parsed_types, org_ids=org_ids)
 
         result_nodes = [
             {
@@ -467,3 +498,69 @@ class MCPToolHandler:
         """Update core memory category preferences."""
         result = await self.preferences.update(auto=auto, approval=approval, excluded=excluded)
         return {"status": "updated", "preferences": result}
+
+    async def promote_to_org(
+        self,
+        node_id: str,
+        org_id: str,
+        action: str = "keep_private",
+    ) -> dict[str, Any]:
+        """Promote a private memory to org visibility.
+
+        Args:
+            action: How to handle cross-boundary edges.
+                "keep_private" (default) — edges to private nodes stay but are invisible to other org members.
+                "promote_all" — also promote directly linked private nodes (1 level deep).
+                "delete_links" — remove edges to private nodes before promoting.
+        """
+        node = await self.graph.get_node(node_id)
+        if not node:
+            return {"error": "Node not found", "node_id": node_id}
+        if node.visibility == Visibility.ORG:
+            return {"error": "Already org-visible", "node_id": node_id}
+
+        # Check for cross-boundary edges (this node's edges to other private nodes)
+        all_edges = await self.graph.get_edges(node_id, "both")
+        cross_boundary: list[dict[str, Any]] = []
+        for e in all_edges:
+            other_id = str(e.target_id) if str(e.source_id) == node_id else str(e.source_id)
+            other = await self.graph.get_node(other_id)
+            if other and other.visibility == Visibility.PRIVATE:
+                cross_boundary.append({
+                    "edge_id": str(e.id),
+                    "linked_node_id": other_id,
+                    "linked_summary": other.content_summary,
+                    "edge_type": e.type.value,
+                })
+
+        if action == "delete_links" and cross_boundary:
+            for cb in cross_boundary:
+                await self.graph.delete_edge(cb["edge_id"])
+        elif action == "promote_all" and cross_boundary:
+            for cb in cross_boundary:
+                linked = await self.graph.get_node(cb["linked_node_id"])
+                if linked and linked.visibility == Visibility.PRIVATE:
+                    # Check second-order links — if they also have private links, keep_private
+                    second_edges = await self.graph.get_edges(cb["linked_node_id"], "both")
+                    has_further_private = False
+                    for se in second_edges:
+                        se_other = str(se.target_id) if str(se.source_id) == cb["linked_node_id"] else str(se.source_id)
+                        if se_other == node_id:
+                            continue
+                        se_node = await self.graph.get_node(se_other)
+                        if se_node and se_node.visibility == Visibility.PRIVATE:
+                            has_further_private = True
+                            break
+                    if has_further_private:
+                        continue  # Skip — depth limit of 1 recursion
+                    await self.graph.promote_to_org(cb["linked_node_id"], org_id)
+
+        await self.graph.promote_to_org(node_id, org_id)
+        await self._notify("memory.promoted", {"node_id": node_id, "org_id": org_id})
+        return {
+            "node_id": node_id,
+            "status": "promoted",
+            "org_id": org_id,
+            "cross_boundary_edges": len(cross_boundary),
+            "action": action,
+        }

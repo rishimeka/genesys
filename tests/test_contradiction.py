@@ -35,12 +35,14 @@ class TestContradiction:
 
         emb = AsyncMock()
         llm = AsyncMock()
-        llm.detect_contradiction = AsyncMock(return_value=(True, 0.95))
+        llm.detect_contradiction = AsyncMock(return_value=(True, 0.95, "Direct contradiction about employer"))
 
         result = await detect_contradictions(new_node, graph, emb, llm)
         assert len(result) == 1
         assert result[0][1] == 0.95
-        graph.create_edge.assert_called_once()
+        # Verify reason is stored in edge metadata
+        edge_arg = graph.create_edge.call_args[0][0]
+        assert edge_arg.metadata["reason"] == "Direct contradiction about employer"
 
     @pytest.mark.asyncio
     async def test_no_contradiction_low_confidence(self):
@@ -53,7 +55,7 @@ class TestContradiction:
         graph.create_edge = AsyncMock()
 
         llm = AsyncMock()
-        llm.detect_contradiction = AsyncMock(return_value=(False, 0.2))
+        llm.detect_contradiction = AsyncMock(return_value=(False, 0.2, None))
 
         result = await detect_contradictions(new_node, graph, AsyncMock(), llm)
         assert len(result) == 0
@@ -74,7 +76,7 @@ class TestContradiction:
         graph.update_node = AsyncMock()
 
         llm = AsyncMock()
-        llm.detect_contradiction = AsyncMock(return_value=(True, 0.9))
+        llm.detect_contradiction = AsyncMock(return_value=(True, 0.9, "Employment changed"))
 
         result = await detect_contradictions(new_node, graph, AsyncMock(), llm)
         assert len(result) == 1

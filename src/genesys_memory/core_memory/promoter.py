@@ -28,8 +28,8 @@ async def consolidation_score(
     b_i = base_level_activation(node.reactivation_timestamps, node.created_at)
     activation_norm = min(max(math.exp(b_i), 0.0), 1.0)
 
-    # Hub importance: how connected vs average
-    degree = await graph.get_degree(str(node.id))
+    # Hub importance: only count supportive edges (excludes CONTRADICTS/SUPERSEDES)
+    degree = await graph.get_supportive_degree(str(node.id))
     stats = await graph.get_stats()
     total_nodes = stats.get("total_nodes", stats.get("nodes", 1))
     total_edges = stats.get("total_edges", stats.get("edges", 0))
@@ -44,7 +44,7 @@ async def consolidation_score(
         checked = 0
         for edge in edges[:config.SCHEMA_NEIGHBOR_CAP]:
             neighbor_id = str(edge.target_id) if str(edge.source_id) == str(node.id) else str(edge.source_id)
-            n_degree = await graph.get_degree(neighbor_id)
+            n_degree = await graph.get_supportive_degree(neighbor_id)
             if n_degree > avg_degree:
                 well_connected += 1
             checked += 1

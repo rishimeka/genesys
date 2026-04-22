@@ -24,7 +24,7 @@ def _make_node(**kwargs) -> MemoryNode:
 def _mock_graph(degree: int = 5, total_nodes: int = 100, total_edges: int = 200):
     """Create a mock graph with configurable degree and stats."""
     g = AsyncMock()
-    g.get_degree = AsyncMock(return_value=degree)
+    g.get_supportive_degree = AsyncMock(return_value=degree)
     g.get_stats = AsyncMock(return_value={
         "total_nodes": total_nodes,
         "total_edges": total_edges,
