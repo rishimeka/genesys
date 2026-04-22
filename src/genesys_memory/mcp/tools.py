@@ -235,7 +235,7 @@ class MCPToolHandler:
             from datetime import datetime, timezone
             now = datetime.now(timezone.utc)
             for mem in memories:
-                mem_id: str | None = mem.get("id")
+                mem_id = mem.get("id")
                 if not mem_id:
                     continue
                 try:
