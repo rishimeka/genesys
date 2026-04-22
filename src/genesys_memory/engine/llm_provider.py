@@ -3,13 +3,12 @@ from __future__ import annotations
 
 import json
 
-import anthropic
-
 from genesys_memory.models.enums import EdgeType
 
 
 class AnthropicLLMProvider:
     def __init__(self, api_key: str, model: str = "claude-haiku-4-5-20251001"):
+        import anthropic
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
         self._model = model
 
