@@ -14,6 +14,14 @@ from genesys_memory.models.node import MemoryNode
 from genesys_memory.storage.base import CacheProvider, EmbeddingProvider, EventBusProvider, GraphStorageProvider
 
 
+def _is_edge_stale(edge: MemoryEdge) -> bool:
+    from genesys_memory.engine import config
+    if not edge.last_validated_at:
+        return False
+    days = (datetime.now(timezone.utc) - edge.last_validated_at).days
+    return days > config.EDGE_STALE_DAYS
+
+
 class MCPToolHandler:
     def __init__(
         self,
@@ -257,6 +265,18 @@ class MCPToolHandler:
                 except Exception:
                     pass
 
+        # Validate edges between co-retrieved nodes (skip in read_only mode)
+        if not read_only and len(memories) > 1:
+            recalled_ids = {m["id"] for m in memories if m.get("id")}
+            try:
+                all_edges = await self.graph.get_all_edges(list(recalled_ids))
+                for edge in all_edges:
+                    src, tgt = str(edge.source_id), str(edge.target_id)
+                    if src in recalled_ids and tgt in recalled_ids:
+                        await self.graph.validate_edge(str(edge.id))
+            except Exception:
+                pass
+
         return {"query": query, "results": memories, "count": len(memories)}
 
     async def _format_memory(self, node: MemoryNode, score: float) -> dict[str, Any]:
@@ -409,6 +429,8 @@ class MCPToolHandler:
                     "target": str(e.target_id) if str(e.source_id) == node_id else str(e.source_id),
                     "reason": e.reason,
                     "created_by": e.created_by,
+                    "last_validated_at": e.last_validated_at.isoformat() if e.last_validated_at else None,
+                    "stale": _is_edge_stale(e),
                 }
                 for e in all_edges
             ],

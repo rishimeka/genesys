@@ -60,6 +60,12 @@ SCHEMA_NEIGHBOR_CAP = _int("GENESYS_SCHEMA_NEIGHBOR_CAP", "10")
 STABILITY_CAP = _float("GENESYS_STABILITY_CAP", "3.0")
 
 # ---------------------------------------------------------------------------
+# Edge Staleness
+# ---------------------------------------------------------------------------
+EDGE_STALE_DAYS = _int("GENESYS_EDGE_STALE_DAYS", "30")
+EDGE_STALE_PENALTY = _float("GENESYS_EDGE_STALE_PENALTY", "0.5")
+
+# ---------------------------------------------------------------------------
 # Cascade Reactivation (reactivation.py)
 # ---------------------------------------------------------------------------
 CASCADE_DEPTH = _int("GENESYS_CASCADE_DEPTH", "2")

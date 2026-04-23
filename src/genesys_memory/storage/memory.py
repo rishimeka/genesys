@@ -229,6 +229,14 @@ class InMemoryGraphProvider:
                 self._save()
                 return
 
+    async def validate_edge(self, edge_id: str) -> None:
+        from datetime import datetime, timezone
+        for e in self.edges:
+            if str(e.id) == edge_id:
+                e.last_validated_at = datetime.now(timezone.utc)
+                self._save()
+                return
+
     async def delete_edge(self, edge_id: str) -> None:
         self.edges = [e for e in self.edges if str(e.id) != edge_id]
         self._save()

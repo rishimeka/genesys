@@ -18,4 +18,6 @@ class MemoryEdge(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     reason: str | None = None
     created_by: str | None = None
+    source_context: str | None = None
+    last_validated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict[str, Any] | None = None
