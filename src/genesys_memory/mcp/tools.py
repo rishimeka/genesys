@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -8,10 +9,35 @@ from typing import Any
 from genesys_memory.core_memory.preferences import CoreMemoryPreferences
 from genesys_memory.core_memory.promoter import evaluate_core_promotion
 from genesys_memory.models.edge import MemoryEdge
-from genesys_memory.context import current_org_ids
+from genesys_memory.context import current_org_ids, current_user_id, current_user_role
 from genesys_memory.models.enums import EdgeType, MemoryStatus, Visibility
 from genesys_memory.models.node import MemoryNode
 from genesys_memory.storage.base import CacheProvider, EmbeddingProvider, EventBusProvider, GraphStorageProvider
+
+logger = logging.getLogger(__name__)
+
+
+def _caller_uid() -> str | None:
+    """Return the current user ID or None if not set."""
+    return current_user_id.get(None)
+
+
+def _caller_owns_node(node: MemoryNode) -> bool:
+    """Check if the current caller is the original owner of a node.
+
+    Raises PermissionError if current_user_id is not set. In multi-user
+    mode, the node must have been created by the current user or the
+    caller must be an admin within the node's org.
+    """
+    uid = _caller_uid()
+    if uid is None:
+        raise PermissionError("current_user_id not set — cannot verify ownership")
+    role = current_user_role.get(None)
+    if role == "admin" and node.org_id and node.org_id in current_org_ids.get([]):
+        return True
+    if node.original_user_id:
+        return node.original_user_id == uid
+    return True
 
 
 def _is_edge_stale(edge: MemoryEdge) -> bool:
@@ -61,6 +87,8 @@ class MCPToolHandler:
         vis = Visibility(visibility)
         if vis == Visibility.ORG and not org_id:
             return {"error": "org_id required when visibility is 'org'"}
+        if vis == Visibility.ORG and org_id not in current_org_ids.get([]):
+            return {"error": "org_id not in caller's org memberships"}
 
         embedding = await self.embeddings.embed(content) if self.embeddings else []
         summary = content[:200]
@@ -82,13 +110,21 @@ class MCPToolHandler:
             source_session=source_session,
             visibility=vis,
             org_id=org_id,
+            original_user_id=_caller_uid(),
         )
 
         node_id = await self.graph.create_node(node)
 
-        # Explicit edges from related_to
+        # Explicit edges from related_to (with visibility check)
         if related_to:
             for target_id in related_to:
+                target_node = await self.graph.get_node(target_id)
+                if target_node is None:
+                    logger.warning(
+                        "related_to target %s not visible to caller %s; skipping edge",
+                        target_id, _caller_uid(),
+                    )
+                    continue
                 edge = MemoryEdge(
                     source_id=node.id,
                     target_id=uuid.UUID(target_id),
@@ -124,7 +160,7 @@ class MCPToolHandler:
                         )
                         await self.graph.create_edge(edge)
             except Exception:
-                pass  # Auto-linking is best-effort
+                logger.warning("Auto-linking failed for node %s", node_id, exc_info=True)
 
         # Promote tagged → active if edges were formed (consolidation signal)
         has_edges = related_to or not await self.graph.is_orphan(node_id)
@@ -149,6 +185,11 @@ class MCPToolHandler:
     ) -> dict[str, Any]:
         """Recall memories by hybrid search: vector + keyword, ranked by vector similarity."""
         import asyncio
+
+        MAX_K = 100
+        if k > MAX_K:
+            logger.info("memory_recall k=%d capped to %d", k, MAX_K)
+            k = MAX_K
 
         # Extract keyword terms while embedding runs
         _stopwords = {
@@ -243,7 +284,6 @@ class MCPToolHandler:
 
         # Update reactivation state for returned nodes (skip in read_only mode)
         if not read_only:
-            from datetime import datetime, timezone
             now = datetime.now(timezone.utc)
             for mem in memories:
                 mem_id = mem.get("id")
@@ -252,18 +292,11 @@ class MCPToolHandler:
                 try:
                     recalled = await self.graph.get_node(mem_id)
                     if recalled:
-                        new_count = recalled.reactivation_count + 1
-                        new_timestamps = list(recalled.reactivation_timestamps or [])
-                        new_timestamps.append(now)
-                        new_stability = recalled.stability + (0.1 / recalled.stability)
-                        await self.graph.update_node(mem_id, {
-                            "reactivation_count": new_count,
-                            "reactivation_timestamps": new_timestamps,
-                            "stability": new_stability,
-                        })
-                        mem["reactivation_count"] = new_count
+                        stability_delta = 0.1 / recalled.stability
+                        await self.graph.atomic_reactivation_update(mem_id, now, stability_delta)
+                        mem["reactivation_count"] = recalled.reactivation_count + 1
                 except Exception:
-                    pass
+                    logger.warning("Reactivation update failed for node %s", mem_id, exc_info=True)
 
         # Validate edges between co-retrieved nodes (skip in read_only mode)
         if not read_only and len(memories) > 1:
@@ -275,7 +308,7 @@ class MCPToolHandler:
                     if src in recalled_ids and tgt in recalled_ids:
                         await self.graph.validate_edge(str(edge.id))
             except Exception:
-                pass
+                logger.warning("Co-retrieval edge validation failed", exc_info=True)
 
         return {"query": query, "results": memories, "count": len(memories)}
 
@@ -303,7 +336,7 @@ class MCPToolHandler:
                     causal_chain.append({"id": str(n.id), "summary": n.content_summary})
                 causal_chain.append({"id": str(node.id), "summary": node.content_summary})
         except Exception:
-            pass
+            logger.warning("Causal chain formatting failed for node %s", node.id, exc_info=True)
 
         result = {
             "id": str(node.id),
@@ -370,6 +403,11 @@ class MCPToolHandler:
         edge_types: list[str] | None = None,
     ) -> dict[str, Any]:
         """Subgraph traversal returning connected nodes."""
+        MAX_DEPTH = 10
+        if depth > MAX_DEPTH:
+            logger.info("memory_traverse depth=%d capped to %d", depth, MAX_DEPTH)
+            depth = MAX_DEPTH
+
         parsed_types = [EdgeType(t) for t in edge_types] if edge_types else None
         org_ids = current_org_ids.get([])
         nodes = await self.graph.traverse(node_id, depth, parsed_types, org_ids=org_ids)
@@ -442,6 +480,8 @@ class MCPToolHandler:
         node = await self.graph.get_node(node_id)
         if not node:
             return {"error": "Node not found", "node_id": node_id}
+        if not _caller_owns_node(node):
+            return {"error": "Only the node owner can pin this memory"}
 
         await self.graph.update_node(node_id, {
             "pinned": True,
@@ -456,6 +496,8 @@ class MCPToolHandler:
         node = await self.graph.get_node(node_id)
         if not node:
             return {"error": "Node not found", "node_id": node_id}
+        if not _caller_owns_node(node):
+            return {"error": "Only the node owner can unpin this memory"}
 
         await self.graph.update_node(node_id, {"pinned": False})
 
@@ -506,6 +548,8 @@ class MCPToolHandler:
         node = await self.graph.get_node(node_id)
         if not node:
             return {"error": "Node not found", "node_id": node_id}
+        if not _caller_owns_node(node):
+            return {"error": "Only the node owner can delete this memory"}
 
         await self.graph.delete_node(node_id)
         await self._notify("memory.deleted", {"node_id": node_id})
@@ -547,6 +591,10 @@ class MCPToolHandler:
             return {"error": "Node not found", "node_id": node_id}
         if node.visibility == Visibility.ORG:
             return {"error": "Already org-visible", "node_id": node_id}
+        if org_id not in current_org_ids.get([]):
+            return {"error": "org_id not in caller's org memberships"}
+        if not _caller_owns_node(node):
+            return {"error": "Only the node owner can promote to org"}
 
         # Check for cross-boundary edges (this node's edges to other private nodes)
         all_edges = await self.graph.get_edges(node_id, "both")
@@ -623,4 +671,31 @@ class MCPToolHandler:
             "edges_deleted": edges_deleted,
             "edges_preserved": edges_preserved,
             "nodes_skipped": nodes_skipped,
+        }
+
+    async def erase_user(
+        self, user_id: str, keep_promoted_nodes: bool = True,
+    ) -> dict[str, Any]:
+        """GDPR Article 17: erase all data belonging to a user.
+
+        Args:
+            keep_promoted_nodes: If True (default), org-promoted nodes are
+                anonymized (original_user_id set to "erased_user") and PII
+                is scrubbed from connected edge reasons. If False, all nodes
+                are deleted regardless of visibility.
+        """
+        uid = _caller_uid()
+        if uid is None:
+            raise PermissionError("current_user_id not set — cannot erase")
+        role = current_user_role.get(None)
+        if uid != user_id and role != "admin":
+            return {"error": "Only the user or an admin can erase user data"}
+
+        manifest = await self.graph.erase_user(user_id, keep_promoted_nodes=keep_promoted_nodes)
+        await self.cache.delete(f"core_preferences:{user_id}")
+        await self._notify("user.erased", {"user_id": user_id, "manifest": manifest})
+        return {
+            "status": "erased",
+            "user_id": user_id,
+            **manifest,
         }

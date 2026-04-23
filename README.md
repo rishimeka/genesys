@@ -176,6 +176,20 @@ cd genesys
 pip install -e '.[dev]'
 ```
 
+### Seed scripts
+
+Two utility scripts populate a running Genesys instance with demo data via the REST API. They require a running server with Clerk auth configured.
+
+```bash
+cp .env.example .env
+# Set CLERK_SECRET_KEY and CLERK_USER_ID in .env
+
+python seed_demo.py      # Creates 25 memories with causal edges and runs recall queries
+python seed_recalls.py   # Runs 5 rounds of recall queries to build reactivation history
+```
+
+Both scripts read credentials from environment variables (via `.env`). See `.env.example` for all required variables.
+
 ## Connect to your AI
 
 ### Claude Code
@@ -298,4 +312,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[Apache 2.0](LICENSE)
+[AGPL-3.0-or-later](LICENSE)
+
+> **Note:** Genesys releases prior to v0.3.6 were documented as Apache 2.0 in error. The LICENSE file has always contained the AGPLv3 text. From v0.3.6 onward, all documentation correctly references AGPL-3.0-or-later with a Contributor License Agreement.

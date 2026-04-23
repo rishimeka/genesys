@@ -8,7 +8,10 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
+from genesys_memory.context import current_user_id
 from genesys_memory.providers import get_providers
+
+STDIO_LOCAL_USER = "stdio_local_user"
 
 providers = get_providers()
 tools = providers.tools
@@ -17,7 +20,7 @@ app = Server("genesys")
 
 # Tool name → (method, required_args, optional_args_with_defaults)
 _TOOL_DISPATCH: dict[str, tuple[Any, ...]] = {
-    "memory_store": (tools.memory_store, ["content"], {"source_session": "", "related_to": None}),
+    "memory_store": (tools.memory_store, ["content"], {"source_session": "", "related_to": None, "visibility": "private", "org_id": None}),
     "memory_recall": (tools.memory_recall, ["query"], {"k": 10, "max_results": None}),
     "memory_search": (tools.memory_search, ["query"], {"filters": None, "k": 10}),
     "memory_traverse": (tools.memory_traverse, ["node_id"], {"depth": 2, "edge_types": None}),
@@ -28,6 +31,7 @@ _TOOL_DISPATCH: dict[str, tuple[Any, ...]] = {
     "delete_memory": (tools.delete_memory, ["node_id"], {}),
     "memory_stats": (tools.memory_stats, [], {}),
     "set_core_preferences": (tools.set_core_preferences, [], {"auto": None, "approval": None, "excluded": None}),
+    "promote_to_org": (tools.promote_to_org, ["node_id", "org_id"], {"action": "keep_private", "dry_run": False}),
 }
 
 _TOOL_SCHEMAS = [
@@ -37,6 +41,8 @@ _TOOL_SCHEMAS = [
             "content": {"type": "string"},
             "source_session": {"type": "string", "default": ""},
             "related_to": {"type": "array", "items": {"type": "string"}},
+            "visibility": {"type": "string", "enum": ["private", "org"], "default": "private"},
+            "org_id": {"type": "string", "description": "Required when visibility is 'org'. Must be an org the caller belongs to."},
         },
     }),
     Tool(name="memory_recall", description="Recall memories using hybrid search (vector + keyword + graph spreading activation).", inputSchema={
@@ -94,6 +100,15 @@ _TOOL_SCHEMAS = [
             "excluded": {"type": "array", "items": {"type": "string"}},
         },
     }),
+    Tool(name="promote_to_org", description="Promote a private memory to org visibility. Caller must own the node and belong to the target org.", inputSchema={
+        "type": "object", "required": ["node_id", "org_id"],
+        "properties": {
+            "node_id": {"type": "string"},
+            "org_id": {"type": "string"},
+            "action": {"type": "string", "enum": ["keep_private", "promote_all", "delete_links"], "default": "keep_private"},
+            "dry_run": {"type": "boolean", "default": False},
+        },
+    }),
 ]
 
 
@@ -117,8 +132,9 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
 
 async def main() -> None:
+    current_user_id.set(STDIO_LOCAL_USER)
     graph = providers.graph
-    await graph.initialize(providers.user_id)
+    await graph.initialize(STDIO_LOCAL_USER)
 
     async with stdio_server() as (read_stream, write_stream):
         await app.run(read_stream, write_stream, app.create_initialization_options())

@@ -5,21 +5,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from genesys_memory.context import current_user_id
-from genesys_memory.mcp.tools import MCPToolHandler
-from genesys_memory.models.enums import MemoryStatus, ReactivationPattern
-from genesys_memory.models.node import MemoryNode
-
-
-@pytest.fixture(autouse=True)
-def _user_ctx():
-    token = current_user_id.set("test-user")
-    yield
-    current_user_id.reset(token)
+from genesys.mcp.tools import MCPToolHandler
+from genesys.models.enums import MemoryStatus, ReactivationPattern
+from genesys.models.node import MemoryNode
 
 
 def _make_node(**kwargs) -> MemoryNode:
-    defaults = {"content_summary": "test memory", "original_user_id": "test-user"}
+    defaults = {"content_summary": "test memory"}
     defaults.update(kwargs)
     return MemoryNode(**defaults)
 
@@ -38,17 +30,16 @@ def _make_handler() -> tuple[MCPToolHandler, AsyncMock, AsyncMock, AsyncMock]:
 class TestAllToolsRegistered:
     @pytest.mark.asyncio
     async def test_all_tools_registered(self):
-        """Server should list 12 tools (11 original + promote_to_org)."""
+        """Server should list 11 tools."""
         # Import and check tool listing
-        from genesys_memory.server import list_tools
+        from genesys.server import list_tools
         tool_list = await list_tools()
-        assert len(tool_list) == 12
+        assert len(tool_list) == 11
         names = {t.name for t in tool_list}
         expected = {
             "memory_store", "memory_recall", "memory_search", "memory_traverse",
             "memory_explain", "pin_memory", "unpin_memory", "list_core_memories",
             "delete_memory", "memory_stats", "set_core_preferences",
-            "promote_to_org",
         }
         assert names == expected
 

@@ -1,7 +1,9 @@
 """In-memory storage providers for running without Docker/Redis/FalkorDB."""
 from __future__ import annotations
 
+import asyncio
 import json as _json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +52,7 @@ class InMemoryGraphProvider:
         self._user_nodes: dict[str, dict[str, MemoryNode]] = {}
         self._user_edges: dict[str, list[MemoryEdge]] = {}
         self._persist_path = Path(persist_path) if persist_path else None
+        self._node_locks: dict[str, asyncio.Lock] = {}
 
     @property
     def nodes(self) -> dict[str, MemoryNode]:
@@ -163,6 +166,89 @@ class InMemoryGraphProvider:
         self._user_nodes.pop(user_id, None)
         self._user_edges.pop(user_id, None)
         self._save()
+
+    async def erase_user(self, user_id: str, keep_promoted_nodes: bool = True) -> dict[str, int]:
+        import re
+        _PII_RE = re.compile(
+            r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+|"
+            r"\b[A-Z][a-z]+\s+[A-Z][a-z]+\b"
+        )
+
+        user_nodes = self._user_nodes.get(user_id, {})
+        nodes_deleted = 0
+        nodes_anonymized = 0
+
+        # Partition nodes into deletable vs. promoted-org (anonymize)
+        promoted_ids: set[str] = set()
+        delete_ids: set[str] = set()
+        for nid, node in user_nodes.items():
+            if keep_promoted_nodes and node.visibility == Visibility.ORG and node.org_id:
+                promoted_ids.add(nid)
+            else:
+                delete_ids.add(nid)
+
+        # Anonymize promoted nodes
+        for nid in promoted_ids:
+            node = user_nodes[nid]
+            node.original_user_id = "erased_user"
+            nodes_anonymized += 1
+
+        # Scrub PII from edge reasons connected to promoted nodes
+        edges_scrubbed = 0
+        for edge_list in self._user_edges.values():
+            for e in edge_list:
+                src, tgt = str(e.source_id), str(e.target_id)
+                if src in promoted_ids or tgt in promoted_ids:
+                    if e.reason and _PII_RE.search(e.reason):
+                        e.reason = _PII_RE.sub("[erased]", e.reason)
+                        edges_scrubbed += 1
+
+        # Count and remove edges for deleted nodes
+        edges_deleted = 0
+        all_delete_ids = delete_ids
+        user_edges = self._user_edges.get(user_id, [])
+        # Count edges being removed from user's own list (only for deleted nodes)
+        edges_deleted += sum(
+            1 for e in user_edges
+            if str(e.source_id) in all_delete_ids or str(e.target_id) in all_delete_ids
+        )
+
+        # Remove edges in other users' lists that reference deleted nodes
+        for other_uid, edge_list in list(self._user_edges.items()):
+            if other_uid == user_id:
+                continue
+            before = len(edge_list)
+            self._user_edges[other_uid] = [
+                e for e in edge_list
+                if str(e.source_id) not in all_delete_ids and str(e.target_id) not in all_delete_ids
+            ]
+            edges_deleted += before - len(self._user_edges[other_uid])
+
+        # Delete the deletable nodes
+        for nid in delete_ids:
+            del user_nodes[nid]
+        nodes_deleted = len(delete_ids)
+
+        # Clean up user's edge list: remove edges referencing deleted nodes
+        if user_id in self._user_edges:
+            self._user_edges[user_id] = [
+                e for e in self._user_edges[user_id]
+                if str(e.source_id) not in all_delete_ids and str(e.target_id) not in all_delete_ids
+            ]
+
+        # If no promoted nodes remain, clean up user entirely
+        if not promoted_ids:
+            self._user_nodes.pop(user_id, None)
+            self._user_edges.pop(user_id, None)
+
+        self._node_locks = {k: v for k, v in self._node_locks.items() if k not in delete_ids}
+        self._save()
+        return {
+            "nodes_deleted": nodes_deleted,
+            "nodes_anonymized": nodes_anonymized,
+            "edges_deleted": edges_deleted,
+            "edges_scrubbed": edges_scrubbed,
+        }
 
     async def create_node(self, node: MemoryNode) -> str:
         nid = str(node.id)
@@ -374,6 +460,25 @@ class InMemoryGraphProvider:
         node.org_id = org_id
         node.original_user_id = uid
         self._save()
+
+    def _get_node_lock(self, node_id: str) -> asyncio.Lock:
+        if node_id not in self._node_locks:
+            self._node_locks[node_id] = asyncio.Lock()
+        return self._node_locks[node_id]
+
+    async def atomic_reactivation_update(
+        self, node_id: str, timestamp: datetime, stability_delta: float,
+    ) -> None:
+        lock = self._get_node_lock(node_id)
+        async with lock:
+            node = self.nodes.get(node_id)
+            if not node:
+                return
+            node.reactivation_count += 1
+            node.reactivation_timestamps.append(timestamp)
+            node.stability += stability_delta
+            node.last_reactivated_at = timestamp
+            self._save()
 
     async def get_stats(self) -> dict[str, Any]:
         max_cw = 0

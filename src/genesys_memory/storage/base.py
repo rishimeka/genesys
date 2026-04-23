@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any, Protocol
 
 from genesys_memory.models.enums import EdgeType, MemoryStatus
@@ -39,6 +40,8 @@ class GraphStorageProvider(Protocol):
     async def get_stats(self) -> dict[str, Any]: ...
 
     async def promote_to_org(self, node_id: str, org_id: str) -> None: ...
+    async def atomic_reactivation_update(self, node_id: str, timestamp: datetime, stability_delta: float) -> None: ...
+    async def erase_user(self, user_id: str, keep_promoted_nodes: bool = True) -> dict[str, int]: ...
 
 
 class EmbeddingProvider(Protocol):
