@@ -531,6 +531,7 @@ class MCPToolHandler:
         node_id: str,
         org_id: str,
         action: str = "keep_private",
+        dry_run: bool = False,
     ) -> dict[str, Any]:
         """Promote a private memory to org visibility.
 
@@ -539,6 +540,7 @@ class MCPToolHandler:
                 "keep_private" (default) — edges to private nodes stay but are invisible to other org members.
                 "promote_all" — also promote directly linked private nodes (1 level deep).
                 "delete_links" — remove edges to private nodes before promoting.
+            dry_run: If True, return a preview of what would change without applying it.
         """
         node = await self.graph.get_node(node_id)
         if not node:
@@ -560,14 +562,19 @@ class MCPToolHandler:
                     "edge_type": e.type.value,
                 })
 
+        # Compute the diff for each action
+        nodes_promoted: list[dict[str, str]] = [{"id": node_id, "summary": node.content_summary}]
+        edges_deleted: list[dict[str, str]] = []
+        edges_preserved: list[dict[str, str]] = []
+        nodes_skipped: list[dict[str, str]] = []
+
         if action == "delete_links" and cross_boundary:
             for cb in cross_boundary:
-                await self.graph.delete_edge(cb["edge_id"])
+                edges_deleted.append({"edge_id": cb["edge_id"], "linked_node_id": cb["linked_node_id"], "linked_summary": cb["linked_summary"]})
         elif action == "promote_all" and cross_boundary:
             for cb in cross_boundary:
                 linked = await self.graph.get_node(cb["linked_node_id"])
                 if linked and linked.visibility == Visibility.PRIVATE:
-                    # Check second-order links — if they also have private links, keep_private
                     second_edges = await self.graph.get_edges(cb["linked_node_id"], "both")
                     has_further_private = False
                     for se in second_edges:
@@ -579,8 +586,31 @@ class MCPToolHandler:
                             has_further_private = True
                             break
                     if has_further_private:
-                        continue  # Skip — depth limit of 1 recursion
-                    await self.graph.promote_to_org(cb["linked_node_id"], org_id)
+                        nodes_skipped.append({"id": cb["linked_node_id"], "summary": cb["linked_summary"], "reason": "has further private links"})
+                        continue
+                    nodes_promoted.append({"id": cb["linked_node_id"], "summary": cb["linked_summary"]})
+        elif action == "keep_private" and cross_boundary:
+            for cb in cross_boundary:
+                edges_preserved.append({"edge_id": cb["edge_id"], "linked_node_id": cb["linked_node_id"], "linked_summary": cb["linked_summary"]})
+
+        if dry_run:
+            return {
+                "node_id": node_id,
+                "dry_run": True,
+                "action": action,
+                "nodes_promoted": nodes_promoted,
+                "edges_deleted": edges_deleted,
+                "edges_preserved": edges_preserved,
+                "nodes_skipped": nodes_skipped,
+            }
+
+        # Apply changes
+        if action == "delete_links" and cross_boundary:
+            for cb in cross_boundary:
+                await self.graph.delete_edge(cb["edge_id"])
+        elif action == "promote_all" and cross_boundary:
+            for entry in nodes_promoted[1:]:
+                await self.graph.promote_to_org(entry["id"], org_id)
 
         await self.graph.promote_to_org(node_id, org_id)
         await self._notify("memory.promoted", {"node_id": node_id, "org_id": org_id})
@@ -588,6 +618,9 @@ class MCPToolHandler:
             "node_id": node_id,
             "status": "promoted",
             "org_id": org_id,
-            "cross_boundary_edges": len(cross_boundary),
             "action": action,
+            "nodes_promoted": nodes_promoted,
+            "edges_deleted": edges_deleted,
+            "edges_preserved": edges_preserved,
+            "nodes_skipped": nodes_skipped,
         }

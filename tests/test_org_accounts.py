@@ -264,7 +264,7 @@ class TestPromoteToOrg:
 
         result = await handler.promote_to_org(str(node_a.id), "org-1", action="keep_private")
         assert result["status"] == "promoted"
-        assert result["cross_boundary_edges"] == 1
+        assert len(result["edges_preserved"]) == 1
 
         # node_a is org, node_b stays private
         promoted = await graph.get_node(str(node_a.id))
@@ -386,6 +386,98 @@ class TestAutoLinkingBoundary:
 
         assert str(org_node.id) in linked_ids
         assert str(private_node.id) not in linked_ids
+
+
+class TestPromoteDryRun:
+    @pytest.mark.asyncio
+    async def test_dry_run_keep_private_shows_preserved(self, setup_two_users):
+        graph = setup_two_users
+        cache = InMemoryCacheProvider()
+        handler = MCPToolHandler(graph=graph, embeddings=None, cache=cache)
+
+        node_a = _make_node(content_summary="to promote")
+        node_b = _make_node(content_summary="private linked")
+        await graph.create_node(node_a)
+        await graph.create_node(node_b)
+        await graph.create_edge(_make_edge(node_a.id, node_b.id))
+
+        result = await handler.promote_to_org(str(node_a.id), "org-1", action="keep_private", dry_run=True)
+        assert result["dry_run"] is True
+        assert len(result["nodes_promoted"]) == 1
+        assert result["nodes_promoted"][0]["id"] == str(node_a.id)
+        assert len(result["edges_preserved"]) == 1
+        assert result["edges_preserved"][0]["linked_summary"] == "private linked"
+        assert len(result["edges_deleted"]) == 0
+
+        # Nothing should have changed
+        node = await graph.get_node(str(node_a.id))
+        assert node.visibility == Visibility.PRIVATE
+
+    @pytest.mark.asyncio
+    async def test_dry_run_delete_links_shows_deleted(self, setup_two_users):
+        graph = setup_two_users
+        cache = InMemoryCacheProvider()
+        handler = MCPToolHandler(graph=graph, embeddings=None, cache=cache)
+
+        node_a = _make_node(content_summary="to promote")
+        node_b = _make_node(content_summary="will lose edge")
+        await graph.create_node(node_a)
+        await graph.create_node(node_b)
+        await graph.create_edge(_make_edge(node_a.id, node_b.id))
+
+        result = await handler.promote_to_org(str(node_a.id), "org-1", action="delete_links", dry_run=True)
+        assert result["dry_run"] is True
+        assert len(result["edges_deleted"]) == 1
+        assert result["edges_deleted"][0]["linked_summary"] == "will lose edge"
+
+        # Edge should still exist
+        edges = await graph.get_edges(str(node_a.id), "both")
+        assert len(edges) == 1
+
+    @pytest.mark.asyncio
+    async def test_dry_run_promote_all_shows_cascade(self, setup_two_users):
+        graph = setup_two_users
+        cache = InMemoryCacheProvider()
+        handler = MCPToolHandler(graph=graph, embeddings=None, cache=cache)
+
+        node_a = _make_node(content_summary="root")
+        node_b = _make_node(content_summary="will cascade")
+        await graph.create_node(node_a)
+        await graph.create_node(node_b)
+        await graph.create_edge(_make_edge(node_a.id, node_b.id))
+
+        result = await handler.promote_to_org(str(node_a.id), "org-1", action="promote_all", dry_run=True)
+        assert result["dry_run"] is True
+        assert len(result["nodes_promoted"]) == 2
+        promoted_ids = {n["id"] for n in result["nodes_promoted"]}
+        assert str(node_a.id) in promoted_ids
+        assert str(node_b.id) in promoted_ids
+
+        # Both should still be private
+        a = await graph.get_node(str(node_a.id))
+        b = await graph.get_node(str(node_b.id))
+        assert a.visibility == Visibility.PRIVATE
+        assert b.visibility == Visibility.PRIVATE
+
+    @pytest.mark.asyncio
+    async def test_dry_run_promote_all_shows_skipped(self, setup_two_users):
+        graph = setup_two_users
+        cache = InMemoryCacheProvider()
+        handler = MCPToolHandler(graph=graph, embeddings=None, cache=cache)
+
+        node_a = _make_node(content_summary="root")
+        node_b = _make_node(content_summary="has deeper links")
+        node_c = _make_node(content_summary="deep private")
+        await graph.create_node(node_a)
+        await graph.create_node(node_b)
+        await graph.create_node(node_c)
+        await graph.create_edge(_make_edge(node_a.id, node_b.id))
+        await graph.create_edge(_make_edge(node_b.id, node_c.id))
+
+        result = await handler.promote_to_org(str(node_a.id), "org-1", action="promote_all", dry_run=True)
+        assert result["dry_run"] is True
+        assert len(result["nodes_skipped"]) == 1
+        assert result["nodes_skipped"][0]["reason"] == "has further private links"
 
 
 class TestMemoryNodeOrgFields:
