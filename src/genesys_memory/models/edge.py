@@ -16,4 +16,6 @@ class MemoryEdge(BaseModel):
     type: EdgeType
     weight: float = 0.7
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    reason: str | None = None
+    created_by: str | None = None
     metadata: dict[str, Any] | None = None

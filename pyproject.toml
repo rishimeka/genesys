@@ -1,6 +1,6 @@
 [project]
 name = "genesys-memory"
-version = "0.3.3"
+version = "0.3.4"
 description = "The intelligence layer for AI memory — scoring, causal inference, lifecycle management, and active forgetting"
 authors = [{name = "Genesys Contributors"}]
 license = {text = "AGPL-3.0-or-later"}

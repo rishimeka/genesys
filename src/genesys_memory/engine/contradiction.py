@@ -49,7 +49,8 @@ async def detect_contradictions(
                 target_id=candidate_node.id,
                 type=EdgeType.CONTRADICTS,
                 weight=confidence,
-                metadata={"confidence": confidence, "reason": reason},
+                reason=reason,
+                created_by="llm_contradiction",
             )
             await graph.create_edge(edge)
             contradictions.append((str(candidate_node.id), confidence))
@@ -61,6 +62,8 @@ async def detect_contradictions(
                     target_id=candidate_node.id,
                     type=EdgeType.SUPERSEDES,
                     weight=confidence,
+                    reason=reason,
+                    created_by="llm_contradiction",
                 )
                 await graph.create_edge(supersede_edge)
                 await graph.update_node(str(candidate_node.id), {
