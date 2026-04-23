@@ -40,9 +40,10 @@ class TestContradiction:
         result = await detect_contradictions(new_node, graph, emb, llm)
         assert len(result) == 1
         assert result[0][1] == 0.95
-        # Verify reason is stored in edge metadata
+        # Verify reason is stored on the edge
         edge_arg = graph.create_edge.call_args[0][0]
-        assert edge_arg.metadata["reason"] == "Direct contradiction about employer"
+        assert edge_arg.reason == "Direct contradiction about employer"
+        assert edge_arg.created_by == "llm_contradiction"
 
     @pytest.mark.asyncio
     async def test_no_contradiction_low_confidence(self):

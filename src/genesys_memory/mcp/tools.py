@@ -86,6 +86,7 @@ class MCPToolHandler:
                     target_id=uuid.UUID(target_id),
                     type=EdgeType.CAUSED_BY,
                     weight=0.7,
+                    created_by="user_explicit",
                 )
                 await self.graph.create_edge(edge)
 
@@ -110,6 +111,8 @@ class MCPToolHandler:
                             target_id=other_node.id,
                             type=EdgeType.RELATED_TO,
                             weight=round(score, 4),
+                            reason=f"cosine similarity {score:.3f}",
+                            created_by="auto_link",
                         )
                         await self.graph.create_edge(edge)
             except Exception:
@@ -404,6 +407,8 @@ class MCPToolHandler:
                     "type": e.type.value,
                     "weight": round(e.weight, 4),
                     "target": str(e.target_id) if str(e.source_id) == node_id else str(e.source_id),
+                    "reason": e.reason,
+                    "created_by": e.created_by,
                 }
                 for e in all_edges
             ],
