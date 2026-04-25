@@ -261,7 +261,7 @@ Memories can also be promoted to **core** status — structurally important memo
 
 ## Benchmark Results
 
-Tested on the [LoCoMo](https://arxiv.org/abs/2402.06397) long-conversation memory benchmark (1,540 questions across 10 conversations, category 5 excluded):
+Tested on the [LoCoMo](https://arxiv.org/abs/2402.06397) long-conversation memory benchmark (1,540 questions across 10 conversations, category 5 excluded — adversarial questions where the ground truth contains factual errors, e.g. incorrect dates and event attributions):
 
 | Category | J-Score |
 |----------|---------|
