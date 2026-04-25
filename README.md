@@ -1,5 +1,8 @@
 <!-- mcp-name: io.github.rishimeka/genesys-memory -->
-![PyPI](https://img.shields.io/pypi/v/genesys-memory)
+[![PyPI](https://img.shields.io/pypi/v/genesys-memory)](https://pypi.org/project/genesys-memory/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/genesys-memory)](https://pypi.org/project/genesys-memory/)
+[![CI](https://github.com/rishimeka/genesys/actions/workflows/ci.yml/badge.svg)](https://github.com/rishimeka/genesys/actions/workflows/ci.yml)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 # Genesys
 
