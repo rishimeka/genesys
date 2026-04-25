@@ -1,5 +1,4 @@
-mcp-name: io.github.rishimeka/genesys-memory
-
+<!-- mcp-name: io.github.rishimeka/genesys-memory -->
 ![PyPI](https://img.shields.io/pypi/v/genesys-memory)
 
 # Genesys
