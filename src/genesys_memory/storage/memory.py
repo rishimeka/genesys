@@ -7,7 +7,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Generator
 
 from genesys_memory.context import current_org_ids, current_user_id
 from genesys_memory.engine.scoring import cosine_similarity
@@ -135,7 +135,7 @@ class InMemoryGraphProvider:
     # -- Save batching ----------------------------------------------------------
 
     @contextmanager
-    def defer_saves(self):
+    def defer_saves(self) -> Generator[None, None, None]:
         """Batch disk writes. All mutations inside this context share one write."""
         self._save_depth += 1
         try:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Callable
-from contextlib import nullcontext
+from contextlib import AbstractContextManager, nullcontext
 from datetime import datetime, timezone
 from typing import Any
 
@@ -65,11 +65,11 @@ class MCPToolHandler:
         self.on_change = on_change
         self.preferences = CoreMemoryPreferences(cache)
 
-    def _defer_saves(self):
+    def _defer_saves(self) -> AbstractContextManager[None]:
         """Return a context manager that batches saves if the graph supports it."""
         for cls in type(self.graph).__mro__:
             if 'defer_saves' in cls.__dict__:
-                return self.graph.defer_saves()
+                return self.graph.defer_saves()  # type: ignore[attr-defined,no-any-return]
         return nullcontext()
 
     async def _notify(self, event_type: str, data: dict[str, Any]) -> None:
