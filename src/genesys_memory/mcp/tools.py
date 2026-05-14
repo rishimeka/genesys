@@ -250,10 +250,13 @@ class MCPToolHandler:
                     vec_score = 0.0
                 merged[nid] = {"node": node, "vec_score": vec_score, "in_both": False}
 
-        # 4. Rank by vector similarity, +0.1 boost for appearing in both
+        # 4. Format results without causal chains first (defer expensive graph queries)
         memories = []
+        node_by_id: dict[str, MemoryNode] = {}
         for nid, info in merged.items():
-            mem = await self._format_memory(info["node"], info["vec_score"])
+            node = info["node"]
+            node_by_id[nid] = node
+            mem = self._format_memory_light(node, info["vec_score"])
             rank_score = info["vec_score"] + (0.1 if info["in_both"] else 0.0)
             mem["_rank_score"] = rank_score
             memories.append(mem)
@@ -265,23 +268,36 @@ class MCPToolHandler:
         core_nodes = await self.graph.get_nodes_by_status(MemoryStatus.CORE, limit=50)
         seen_ids = set(merged.keys())
         for cnode in core_nodes:
-            if str(cnode.id) not in seen_ids:
-                mem = await self._format_memory(cnode, 0.0)
+            cid = str(cnode.id)
+            if cid not in seen_ids:
+                node_by_id[cid] = cnode
+                mem = self._format_memory_light(cnode, 0.0)
                 mem["is_core"] = True
                 mem["_rank_score"] = 0.0
                 memories.append(mem)
 
-        # Deprioritize superseded nodes (replaced by newer information)
+        # Batch superseded check: one get_all_edges call instead of N get_edges calls
         SUPERSEDED_DECAY = 0.3
-        for mem in memories:
-            mem_id = mem.get("id")
-            if mem_id:
-                incoming = await self.graph.get_edges(mem_id, "incoming", EdgeType.SUPERSEDES)
-                if incoming:
-                    mem["_rank_score"] *= SUPERSEDED_DECAY
-                    mem["superseded_by"] = str(
-                        incoming[0].source_id if str(incoming[0].target_id) == mem_id else incoming[0].target_id
-                    )
+        all_mem_ids = [m["id"] for m in memories if m.get("id")]
+        if all_mem_ids:
+            try:
+                all_mem_edges = await self.graph.get_all_edges(all_mem_ids)
+                superseded_map: dict[str, str] = {}
+                for edge in all_mem_edges:
+                    if edge.type == EdgeType.SUPERSEDES:
+                        tgt = str(edge.target_id)
+                        src = str(edge.source_id)
+                        if tgt in node_by_id:
+                            superseded_map[tgt] = src
+                        elif src in node_by_id:
+                            superseded_map[src] = tgt
+                for mem in memories:
+                    mem_id = mem.get("id")
+                    if mem_id and mem_id in superseded_map:
+                        mem["_rank_score"] *= SUPERSEDED_DECAY
+                        mem["superseded_by"] = superseded_map[mem_id]
+            except Exception:
+                logger.warning("Superseded check failed", exc_info=True)
 
         memories.sort(key=lambda m: m["_rank_score"], reverse=True)
         for mem in memories:
@@ -290,6 +306,40 @@ class MCPToolHandler:
         # Cap final results
         cap = max_results if max_results is not None else k
         memories = memories[:cap]
+
+        # Enrich top results with causal chains (only for the capped set)
+        org_ids_for_chain = current_org_ids.get([])
+        for mem in memories:
+            mem_id = mem.get("id")
+            if not mem_id:
+                continue
+            try:
+                upstream = await self.graph.get_causal_chain(mem_id, "upstream", org_ids=org_ids_for_chain)
+                downstream = await self.graph.get_causal_chain(mem_id, "downstream", org_ids=org_ids_for_chain)
+                causal_basis = []
+                causal_chain = []
+                seen_causal = set()
+                for n in upstream[:5]:
+                    nid_str = str(n.id)
+                    if nid_str not in seen_causal:
+                        causal_basis.append({"id": nid_str, "summary": n.content_summary, "direction": "upstream"})
+                        seen_causal.add(nid_str)
+                for n in downstream[:5]:
+                    nid_str = str(n.id)
+                    if nid_str not in seen_causal:
+                        causal_basis.append({"id": nid_str, "summary": n.content_summary, "direction": "downstream"})
+                        seen_causal.add(nid_str)
+                if upstream:
+                    for n in reversed(upstream[:5]):
+                        causal_chain.append({"id": str(n.id), "summary": n.content_summary})
+                    origin = node_by_id.get(mem_id)
+                    if origin:
+                        causal_chain.append({"id": mem_id, "summary": origin.content_summary})
+                mem["causal_basis"] = causal_basis
+                if causal_chain:
+                    mem["causal_chain"] = causal_chain
+            except Exception:
+                logger.warning("Causal chain fetch failed for node %s", mem_id, exc_info=True)
 
         # Update reactivation state + validate co-retrieval edges (skip in read_only mode)
         if not read_only:
@@ -300,7 +350,7 @@ class MCPToolHandler:
                     if not mem_id:
                         continue
                     try:
-                        recalled = await self.graph.get_node(mem_id)
+                        recalled = node_by_id.get(mem_id)
                         if recalled:
                             stability_delta = 0.1 / recalled.stability
                             await self.graph.atomic_reactivation_update(mem_id, now, stability_delta)
@@ -311,8 +361,8 @@ class MCPToolHandler:
                 if len(memories) > 1:
                     recalled_ids = {m["id"] for m in memories if m.get("id")}
                     try:
-                        all_edges = await self.graph.get_all_edges(list(recalled_ids))
-                        for edge in all_edges:
+                        recall_edges = await self.graph.get_all_edges(list(recalled_ids))
+                        for edge in recall_edges:
                             src, tgt = str(edge.source_id), str(edge.target_id)
                             if src in recalled_ids and tgt in recalled_ids:
                                 await self.graph.validate_edge(str(edge.id))
@@ -321,15 +371,28 @@ class MCPToolHandler:
 
         return {"query": query, "results": memories, "count": len(memories)}
 
+    def _format_memory_light(self, node: MemoryNode, score: float) -> dict[str, Any]:
+        """Format a memory node without causal chain queries (for ranking phase)."""
+        return {
+            "id": str(node.id),
+            "content": node.content_full or node.content_summary,
+            "summary": node.content_summary,
+            "status": node.status.value,
+            "decay_score": round(node.decay_score, 4),
+            "score": round(score, 4),
+            "created_at": node.created_at.isoformat(),
+            "causal_basis": [],
+            "is_core": node.status == MemoryStatus.CORE,
+        }
+
     async def _format_memory(self, node: MemoryNode, score: float) -> dict[str, Any]:
         """Format a memory node with causal chain info."""
-        causal_basis = []
-        causal_chain = []
+        result = self._format_memory_light(node, score)
         org_ids = current_org_ids.get([])
         try:
             upstream = await self.graph.get_causal_chain(str(node.id), "upstream", org_ids=org_ids)
             downstream = await self.graph.get_causal_chain(str(node.id), "downstream", org_ids=org_ids)
-            # Causal basis: both upstream causes and downstream effects
+            causal_basis = []
             seen = set()
             for n in upstream[:5]:
                 if str(n.id) not in seen:
@@ -339,27 +402,15 @@ class MCPToolHandler:
                 if str(n.id) not in seen:
                     causal_basis.append({"id": str(n.id), "summary": n.content_summary, "direction": "downstream"})
                     seen.add(str(n.id))
-            # Causal chain: structured array of the upstream path
+            result["causal_basis"] = causal_basis
             if upstream:
+                causal_chain = []
                 for n in reversed(upstream[:5]):
                     causal_chain.append({"id": str(n.id), "summary": n.content_summary})
                 causal_chain.append({"id": str(node.id), "summary": node.content_summary})
+                result["causal_chain"] = causal_chain
         except Exception:
             logger.warning("Causal chain formatting failed for node %s", node.id, exc_info=True)
-
-        result = {
-            "id": str(node.id),
-            "content": node.content_full or node.content_summary,
-            "summary": node.content_summary,
-            "status": node.status.value,
-            "decay_score": round(node.decay_score, 4),
-            "score": round(score, 4),
-            "created_at": node.created_at.isoformat(),
-            "causal_basis": causal_basis,
-            "is_core": node.status == MemoryStatus.CORE,
-        }
-        if causal_chain:
-            result["causal_chain"] = causal_chain
         return result
 
     async def memory_search(
