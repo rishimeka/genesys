@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.2] - 2026-07-17
+
+### Fixed
+
+- **`memory_traverse` induced subgraph now includes the start node** and its incident edges. The in-memory provider returned the start node from `traverse()`; the Postgres provider excludes it (`WHERE id != start`), so on Postgres backends every edge incident to the start node was dropped from `edges` — including the sole match when `edge_types` filtered to a start-incident edge (e.g. traversing from an amended node with `edge_types=["supersedes"]` returned the right neighbor but zero edges). Normalized in the tool layer so all backends behave identically: the start node leads the node set and its edges appear.
+
 ## [0.4.1] - 2026-07-17
 
 ### Fixed (0.4.0 field-retest round 2)

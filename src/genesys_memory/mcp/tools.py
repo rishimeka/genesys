@@ -866,6 +866,18 @@ class MCPToolHandler:
         org_ids = current_org_ids.get([])
         nodes = await self.graph.traverse(node_id, depth, parsed_types, org_ids=org_ids)
 
+        # Backends diverge on whether traverse() returns the start node itself:
+        # the in-memory provider includes it, Postgres excludes it (WHERE id !=
+        # start). The traversal's induced subgraph MUST contain the start node,
+        # or every edge incident to it is dropped from `edges` — including the
+        # only match when edge_types filters to a start-incident edge. Normalize
+        # here so all backends behave identically: ensure the start node leads
+        # the result set.
+        if not any(str(n.id) == node_id for n in nodes):
+            start = await self.graph.get_node(node_id)
+            if start is not None:
+                nodes = [start, *nodes]
+
         result_nodes = [
             {
                 "id": str(n.id),

@@ -796,3 +796,30 @@ class TestRetestRound2Fixes:
         top = result["results"][0]
         assert top["id"] == new["node_id"]
         assert "superseded_by" not in top
+
+
+class TestTraverseIncludesStartNode:
+    """F3 round-3: the induced subgraph must include the start node, so its
+    incident edges (incl. an edge_types-filtered match) are not dropped."""
+
+    async def test_traverse_returns_start_incident_edges(self):
+        h = await _real_handler(_ConstEmbedder())
+        a = await h.memory_store("Anchor node A")
+        b = await h.memory_store("Node B", related=[{"id": a["node_id"], "type": "supports"}])
+        c = await h.memory_store("Node C", related=[{"id": a["node_id"], "type": "supersedes"}])
+        # Traverse from A: A's own edges (A->B supports via B's edge, C->A supersedes) must appear.
+        res = await h.memory_traverse(a["node_id"], depth=2)
+        node_ids = {n["id"] for n in res["nodes"]}
+        assert a["node_id"] in node_ids  # start node present
+        edge_pairs = {(e["source"], e["target"], e["type"]) for e in res["edges"]}
+        # B was stored with a supports edge B->A; that edge is start-incident.
+        assert any(a["node_id"] in (s, t) for s, t, _ in edge_pairs), "start-incident edges missing"
+
+    async def test_traverse_edge_type_filter_returns_start_incident_match(self):
+        h = await _real_handler(_ConstEmbedder())
+        a = await h.memory_store("Fact v1")
+        # Amend creates a new node with a supersedes edge -> A (start-incident).
+        amended = await h.memory_amend(a["node_id"], "Fact v2")
+        res = await h.memory_traverse(a["node_id"], depth=2, edge_types=["supersedes"])
+        assert res["edge_count"] >= 1, "edge_types filter dropped the only (start-incident) supersedes edge"
+        assert all(e["type"] == "supersedes" for e in res["edges"])
