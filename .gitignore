@@ -71,3 +71,14 @@ alembic.ini
 # Handoff docs
 genesys-neuro-handoff/
 /local_storage/
+
+# private / local / business — never publish
+.claude/
+.playwright-mcp/
+.coverage
+*.docx
+/*.png
+*AUDIT*.md
+yc-*.md
+PATENT_*.md
+seed_*.py
